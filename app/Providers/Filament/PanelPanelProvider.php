@@ -46,8 +46,9 @@ class PanelPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Panel/Resources'), for: 'App\Filament\Panel\Resources')
             ->discoverPages(in: app_path('Filament/Panel/Pages'), for: 'App\Filament\Panel\Pages')
             ->navigationGroups([
+                'IAM',
                 'User Managements',
-                'Settings'
+                'Settings',
             ])
             ->pages([
                 Dashboard::class,
