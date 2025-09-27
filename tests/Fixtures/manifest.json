@@ -1,0 +1,22 @@
+{
+  "resources/js/app.ts": {"file": "app.js", "src": "resources/js/app.ts", "isEntry": true},
+  "resources/js/pages/Dashboard.vue": {"file": "pages/Dashboard.js", "src": "resources/js/pages/Dashboard.vue"},
+  "resources/js/pages/Welcome.vue": {"file": "pages/Welcome.js", "src": "resources/js/pages/Welcome.vue"},
+  "resources/js/pages/auth/Login.vue": {"file": "pages/auth/Login.js", "src": "resources/js/pages/auth/Login.vue"},
+  "resources/js/pages/auth/LoginPage.vue": {"file": "pages/auth/LoginPage.js", "src": "resources/js/pages/auth/LoginPage.vue"},
+  "resources/js/pages/auth/Register.vue": {"file": "pages/auth/Register.js", "src": "resources/js/pages/auth/Register.vue"},
+  "resources/js/pages/auth/RegisterPage.vue": {"file": "pages/auth/RegisterPage.js", "src": "resources/js/pages/auth/RegisterPage.vue"},
+  "resources/js/pages/auth/ForgotPassword.vue": {"file": "pages/auth/ForgotPassword.js", "src": "resources/js/pages/auth/ForgotPassword.vue"},
+  "resources/js/pages/auth/ForgotPasswordPage.vue": {"file": "pages/auth/ForgotPasswordPage.js", "src": "resources/js/pages/auth/ForgotPasswordPage.vue"},
+  "resources/js/pages/auth/ResetPassword.vue": {"file": "pages/auth/ResetPassword.js", "src": "resources/js/pages/auth/ResetPassword.vue"},
+  "resources/js/pages/auth/ResetPasswordPage.vue": {"file": "pages/auth/ResetPasswordPage.js", "src": "resources/js/pages/auth/ResetPasswordPage.vue"},
+  "resources/js/pages/auth/VerifyEmail.vue": {"file": "pages/auth/VerifyEmail.js", "src": "resources/js/pages/auth/VerifyEmail.vue"},
+  "resources/js/pages/auth/VerifyEmailPage.vue": {"file": "pages/auth/VerifyEmailPage.js", "src": "resources/js/pages/auth/VerifyEmailPage.vue"},
+  "resources/js/pages/auth/TwoFactorChallenge.vue": {"file": "pages/auth/TwoFactorChallenge.js", "src": "resources/js/pages/auth/TwoFactorChallenge.vue"},
+  "resources/js/pages/auth/TwoFactorChallengePage.vue": {"file": "pages/auth/TwoFactorChallengePage.js", "src": "resources/js/pages/auth/TwoFactorChallengePage.vue"},
+  "resources/js/pages/auth/ConfirmPassword.vue": {"file": "pages/auth/ConfirmPassword.js", "src": "resources/js/pages/auth/ConfirmPassword.vue"},
+  "resources/js/pages/settings/Profile.vue": {"file": "pages/settings/Profile.js", "src": "resources/js/pages/settings/Profile.vue"},
+  "resources/js/pages/settings/Password.vue": {"file": "pages/settings/Password.js", "src": "resources/js/pages/settings/Password.vue"},
+  "resources/js/pages/settings/TwoFactor.vue": {"file": "pages/settings/TwoFactor.js", "src": "resources/js/pages/settings/TwoFactor.vue"},
+  "resources/js/pages/settings/Appearance.vue": {"file": "pages/settings/Appearance.js", "src": "resources/js/pages/settings/Appearance.vue"}
+}

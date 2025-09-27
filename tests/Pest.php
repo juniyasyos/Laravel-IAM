@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/Support/IamTestHelpers.php';
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -14,6 +16,12 @@
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
+
+uses()
+    ->beforeEach(function () {
+        config(['vite.manifest' => base_path('tests/Fixtures/manifest.json')]);
+        config(['vite.hot' => null]);
+    });
 
 /*
 |--------------------------------------------------------------------------

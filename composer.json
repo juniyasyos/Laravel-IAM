@@ -12,9 +12,12 @@
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
+        "laravel/passport": "^12",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
-        "spatie/laravel-medialibrary": "^11.0"
+        "spatie/laravel-activitylog": "^4",
+        "spatie/laravel-medialibrary": "^11.0",
+        "spatie/laravel-permission": "^6"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.16",
@@ -32,7 +35,10 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Support/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

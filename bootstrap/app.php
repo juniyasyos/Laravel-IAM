@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withProviders([
+        App\Providers\AppServiceProvider::class,
+        App\Providers\FortifyServiceProvider::class,
         App\Providers\PanelThemeServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
@@ -23,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->alias([
+            'app.permission' => \App\Http\Middleware\EnsureAppPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
