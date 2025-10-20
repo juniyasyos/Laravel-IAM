@@ -99,3 +99,25 @@ it('rejects invalid or expired tokens', function (): void {
 
     Carbon::setTestNow();
 });
+
+it('resumes SSO redirect after logging in with an app context', function (): void {
+    $application = Application::factory()->create([
+        'app_key' => 'client-example',
+        'callback_url' => 'http://127.0.0.1:8080/callback',
+    ]);
+
+    $user = User::factory()->create([
+        'email' => 'user@example.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    $this->get('/login?app=' . $application->app_key)
+        ->assertStatus(200);
+
+    $response = $this->post('/login', [
+        'email' => 'user@example.com',
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect(route('sso.redirect', ['app' => $application->app_key], absolute: true));
+});

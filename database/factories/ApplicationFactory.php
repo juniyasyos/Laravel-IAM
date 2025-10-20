@@ -18,7 +18,8 @@ class ApplicationFactory extends Factory
     public function definition(): array
     {
         return [
-            'app_key' => $this->faker->unique()->slug(2),
+            // Use dot-separated slug to align with Application::findByKey normalization
+            'app_key' => \Illuminate\Support\Str::slug($this->faker->unique()->slug(2), '.'),
             'name' => $this->faker->unique()->company(),
             'description' => $this->faker->optional()->sentence(),
             'enabled' => true,

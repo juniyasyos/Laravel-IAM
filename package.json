@@ -4,7 +4,12 @@
     "scripts": {
         "build": "vite build",
         "build:ssr": "vite build && vite build --ssr",
-        "dev": "vite",
+            "dev": "vite",
+            "server": "php artisan serve",
+            "queue": "php artisan queue:listen --tries=1",
+            "logs": "php artisan pail --timeout=0",
+            "dev:full": "concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"npm:server\" \"npm:queue\" \"npm:logs\" \"vite\" --names=server,queue,logs,vite --kill-others",
+            "dev:ssr:full": "concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"npm:server\" \"npm:queue\" \"npm:logs\" \"php artisan inertia:start-ssr\" --names=server,queue,logs,ssr --kill-others",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix"
