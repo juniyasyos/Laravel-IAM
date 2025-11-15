@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Iam\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -45,11 +46,11 @@ class AccessProfile extends Model
     }
 
     /**
-     * Relation many-to-many with IamRole.
+     * Relation many-to-many with ApplicationRole.
      */
     public function roles()
     {
-        return $this->belongsToMany(\App\Domain\Iam\Models\ApplicationRole::class,
+        return $this->belongsToMany(ApplicationRole::class,
             'access_profile_role_iam_map',
             'access_profile_id',
             'role_id')
@@ -61,7 +62,9 @@ class AccessProfile extends Model
      */
     public function users()
     {
-        return $this->belongsToMany(User::class, 'user_access_profiles');
+        return $this->belongsToMany(User::class, 'user_access_profiles')
+            ->withPivot('assigned_by')
+            ->withTimestamps();
     }
 
 }

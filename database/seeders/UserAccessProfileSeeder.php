@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\AccessProfile;
+use App\Domain\Iam\Models\AccessProfile;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -28,7 +28,7 @@ class UserAccessProfileSeeder extends Seeder
             $profileIds = [];
             foreach ($assignment['profiles'] as $profileSlug) {
                 $profile = AccessProfile::where('slug', $profileSlug)->first();
-                
+
                 if ($profile) {
                     $profileIds[] = $profile->id;
                 } else {

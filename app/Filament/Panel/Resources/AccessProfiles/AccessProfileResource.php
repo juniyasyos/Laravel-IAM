@@ -7,20 +7,31 @@ use App\Filament\Panel\Resources\AccessProfiles\Pages\EditAccessProfile;
 use App\Filament\Panel\Resources\AccessProfiles\Pages\ListAccessProfiles;
 use App\Filament\Panel\Resources\AccessProfiles\Schemas\AccessProfileForm;
 use App\Filament\Panel\Resources\AccessProfiles\Tables\AccessProfilesTable;
-use App\Models\AccessProfile;
+use App\Domain\Iam\Models\AccessProfile;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class AccessProfileResource extends Resource
 {
     protected static ?string $model = AccessProfile::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|UnitEnum|null $navigationGroup = 'Access Control';
 
-    protected static ?string $recordTitleAttribute = 'name ';
+    protected static ?int $navigationSort = 10;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+
+    protected static ?string $navigationLabel = 'Access Profiles';
+
+    protected static ?string $modelLabel = 'Access Profile';
+
+    protected static ?string $pluralModelLabel = 'Access Profiles';
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
     {
@@ -36,6 +47,7 @@ class AccessProfileResource extends Resource
     {
         return [
             RelationManagers\RolesRelationManager::class,
+            RelationManagers\UsersRelationManager::class,
         ];
     }
 

@@ -77,7 +77,7 @@ class User extends Authenticatable
     public function accessProfiles(): BelongsToMany
     {
         return $this->belongsToMany(
-            AccessProfile::class,
+            \App\Domain\Iam\Models\AccessProfile::class,
             'user_access_profiles',
             'user_id',
             'access_profile_id'
@@ -111,7 +111,7 @@ class User extends Authenticatable
     {
         $directRoles = $this->applicationRoles()->pluck('iam_roles.id');
         $profileRoles = $this->rolesViaAccessProfiles()->pluck('iam_roles.id');
-        
+
         return \App\Domain\Iam\Models\ApplicationRole::query()
             ->whereIn('id', $directRoles->merge($profileRoles)->unique());
     }

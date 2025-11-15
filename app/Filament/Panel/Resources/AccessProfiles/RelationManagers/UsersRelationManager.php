@@ -1,0 +1,102 @@
+<?php
+
+namespace App\Filament\Panel\Resources\AccessProfiles\RelationManagers;
+
+use App\Models\User;
+use Filament\Actions\AttachAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DetachAction;
+use Filament\Actions\DetachBulkAction;
+use Filament\Forms\Components\Select;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
+class UsersRelationManager extends RelationManager
+{
+    protected static string $relationship = 'users';
+
+    protected static ?string $title = 'Assigned Users';
+
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('name')
+                    ->label('User Name')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+                TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->icon('heroicon-m-envelope'),
+                IconColumn::make('active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
+                TextColumn::make('pivot.assigned_by')
+                    ->label('Assigned By')
+                    ->getStateUsing(fn ($record) => $record->pivot->assigned_by ? User::find($record->pivot->assigned_by)?->name : 'System')
+                    ->toggleable(),
+                TextColumn::make('pivot.created_at')
+                    ->label('Assigned At')
+                    ->dateTime('M d, Y H:i')
+                    ->sortable()
+                    ->toggleable(),
+            ])
+            ->headerActions([
+                AttachAction::make()
+                    ->label('Assign User')
+                    ->modalHeading('Assign User to Profile')
+                    ->modalDescription('Select users to assign this access profile.')
+                    ->preloadRecordSelect()
+                    ->form(fn (AttachAction $action): array => [
+                        Select::make('recordId')
+                            ->label('User')
+                            ->options(User::query()->where('active', true)->pluck('name', 'id'))
+                            ->searchable(['name', 'email'])
+                            ->required()
+                            ->native(false)
+                            ->helperText('Only active users are shown.'),
+                    ])
+                    ->after(function ($record, array $data) {
+                        // Set assigned_by to current authenticated user
+                        $userId = Auth::id();
+                        if ($userId) {
+                            DB::table('user_access_profiles')
+                                ->where('user_id', $record->id)
+                                ->where('access_profile_id', $this->getOwnerRecord()->id)
+                                ->update(['assigned_by' => $userId]);
+                        }
+                    }),
+            ])
+            ->recordActions([
+                DetachAction::make()
+                    ->label('Remove')
+                    ->requiresConfirmation()
+                    ->modalHeading('Remove user from profile')
+                    ->modalDescription('Are you sure you want to remove this user from the access profile?'),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DetachBulkAction::make()
+                        ->label('Remove Selected')
+                        ->requiresConfirmation(),
+                ]),
+            ])
+            ->emptyStateHeading('No users assigned')
+            ->emptyStateDescription('Assign users to this profile to grant them the associated application roles.')
+            ->emptyStateIcon('heroicon-o-user-group');
+    }
+}

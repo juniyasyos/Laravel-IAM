@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\AccessProfile;
+use App\Domain\Iam\Models\AccessProfile;
 use App\Domain\Iam\Models\Application;
 use App\Domain\Iam\Models\ApplicationRole;
 use Illuminate\Database\Seeder;

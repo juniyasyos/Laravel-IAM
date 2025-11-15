@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
                 ['Users', \App\Models\User::count()],
                 ['Applications', \App\Domain\Iam\Models\Application::count()],
                 ['IAM Roles', \App\Domain\Iam\Models\ApplicationRole::count()],
-                ['Access Profiles', \App\Models\AccessProfile::count()],
+                ['Access Profiles', \App\Domain\Iam\Models\AccessProfile::count()],
                 ['User Role Assignments', \App\Domain\Iam\Models\UserApplicationRole::count()],
                 ['User Access Profiles', DB::table('user_access_profiles')->count()],
             ]

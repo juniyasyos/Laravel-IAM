@@ -9,7 +9,7 @@ use App\Filament\Panel\Resources\Applications\Pages\ViewApplication;
 use App\Filament\Panel\Resources\Applications\Schemas\ApplicationForm;
 use App\Filament\Panel\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Filament\Panel\Resources\Applications\Tables\ApplicationsTable;
-use App\Models\Application;
+use App\Domain\Iam\Models\Application;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -22,11 +22,11 @@ class ApplicationResource extends Resource
 {
     protected static ?string $model = Application::class;
 
-    protected static string | UnitEnum | null $navigationGroup = 'IAM';
+    protected static string | UnitEnum | null $navigationGroup = 'IAM Management';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 20;
 
-    protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-cube';
 
     protected static ?string $modelLabel = 'Application';
 
@@ -52,7 +52,7 @@ class ApplicationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\RolesRelationManager::class,
         ];
     }
 

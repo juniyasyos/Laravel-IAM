@@ -2,7 +2,7 @@
 
 namespace App\Filament\Panel\Resources\Applications\Schemas;
 
-use App\Models\Application;
+use App\Domain\Iam\Models\Application;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;

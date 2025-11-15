@@ -2,7 +2,7 @@
 
 namespace App\Filament\Panel\Resources\Applications\Schemas;
 
-use App\Models\Application;
+use App\Domain\Iam\Models\Application;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;

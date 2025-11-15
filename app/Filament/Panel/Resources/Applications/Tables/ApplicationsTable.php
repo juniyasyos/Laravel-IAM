@@ -2,7 +2,7 @@
 
 namespace App\Filament\Panel\Resources\Applications\Tables;
 
-use App\Models\Application;
+use App\Domain\Iam\Models\Application;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -28,21 +28,47 @@ class ApplicationsTable
                 TextColumn::make('app_key')
                     ->label('App Key')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold')
+                    ->fontFamily('mono')
+                    ->badge()
+                    ->color('primary'),
                 TextColumn::make('name')
+                    ->label('Application Name')
                     ->searchable()
+                    ->sortable()
+                    ->description(fn ($record) => $record->description),
+                TextColumn::make('roles_count')
+                    ->label('Roles')
+                    ->counts('roles')
+                    ->badge()
+                    ->color('info')
                     ->sortable(),
+                IconColumn::make('enabled')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->tooltip(fn (bool $state): string => $state ? 'Application enabled' : 'Application disabled'),
                 TextColumn::make('callback_url')
                     ->label('Callback URL')
                     ->limit(40)
+                    ->copyable()
+                    ->icon('heroicon-m-link')
                     ->toggleable(isToggledHiddenByDefault: true),
-                IconColumn::make('enabled')
-                    ->boolean()
-                    ->label('Enabled'),
+                TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime('M d, Y')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime()
-                    ->sortable(),
+                    ->label('Last Updated')
+                    ->dateTime('M d, Y H:i')
+                    ->since()
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 TernaryFilter::make('enabled')
