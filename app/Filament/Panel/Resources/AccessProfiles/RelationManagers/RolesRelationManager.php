@@ -69,7 +69,7 @@ class RolesRelationManager extends RelationManager
                             ->orderBy('name');
                     })
                     ->recordSelectSearchColumns(['name', 'slug'])
-                    ->form(fn (AttachAction $action): array => [
+                    ->schema(fn (AttachAction $action): array => [
                         Select::make('recordId')
                             ->label('Application Role')
                             ->options(function () {
@@ -93,7 +93,7 @@ class RolesRelationManager extends RelationManager
                     ->requiresConfirmation(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
+                \Filament\Actions\BulkActionGroup::make([
                     DetachBulkAction::make()
                         ->requiresConfirmation(),
                 ]),

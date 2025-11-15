@@ -19,7 +19,7 @@ class AccessProfileResource extends Resource
 {
     protected static ?string $model = AccessProfile::class;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Access Control';
+    protected static string|UnitEnum|null $navigationGroup = 'IAM Management';
 
     protected static ?int $navigationSort = 10;
 

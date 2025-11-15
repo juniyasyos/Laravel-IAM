@@ -11,6 +11,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -25,6 +26,12 @@ class ApplicationsTable
     {
         return $table
             ->columns([
+                TextColumn::make('name')
+                    ->label('Application Name')
+                    ->searchable()
+                    ->sortable()
+                    ->wrap()
+                    ->description(fn($record) => $record->description),
                 TextColumn::make('app_key')
                     ->label('App Key')
                     ->searchable()
@@ -32,16 +39,13 @@ class ApplicationsTable
                     ->weight('bold')
                     ->fontFamily('mono')
                     ->badge()
+                    ->toggleable()
                     ->color('primary'),
-                TextColumn::make('name')
-                    ->label('Application Name')
-                    ->searchable()
-                    ->sortable()
-                    ->description(fn ($record) => $record->description),
                 TextColumn::make('roles_count')
                     ->label('Roles')
                     ->counts('roles')
                     ->badge()
+                    ->toggleable()
                     ->color('info')
                     ->sortable(),
                 IconColumn::make('enabled')
@@ -51,7 +55,8 @@ class ApplicationsTable
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger')
-                    ->tooltip(fn (bool $state): string => $state ? 'Application enabled' : 'Application disabled'),
+                    ->toggleable()
+                    ->tooltip(fn(bool $state): string => $state ? 'Application enabled' : 'Application disabled'),
                 TextColumn::make('callback_url')
                     ->label('Callback URL')
                     ->limit(40)
@@ -65,23 +70,22 @@ class ApplicationsTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
                     ->label('Last Updated')
-                    ->dateTime('M d, Y H:i')
-                    ->since()
+                    ->dateTime('M d, Y')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('enabled')
                     ->boolean(),
                 Filter::make('updated_at')
-                    ->form([
+                    ->schema([
                         DatePicker::make('from'),
                         DatePicker::make('until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'] ?? null, fn (Builder $query, $date): Builder => $query->whereDate('updated_at', '>=', $date))
-                            ->when($data['until'] ?? null, fn (Builder $query, $date): Builder => $query->whereDate('updated_at', '<=', $date));
+                            ->when($data['from'] ?? null, fn(Builder $query, $date): Builder => $query->whereDate('updated_at', '>=', $date))
+                            ->when($data['until'] ?? null, fn(Builder $query, $date): Builder => $query->whereDate('updated_at', '<=', $date));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
@@ -99,8 +103,6 @@ class ApplicationsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
                 Action::make('toggleEnabled')
                     ->label('Toggle Enabled')
                     ->icon('heroicon-m-adjustments-horizontal')
@@ -111,6 +113,10 @@ class ApplicationsTable
                         ])->save();
                     })
                     ->requiresConfirmation(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                ])
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

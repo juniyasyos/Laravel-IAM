@@ -49,11 +49,25 @@ class ApplicationRole extends Model
     {
         return $this->belongsToMany(
             \App\Models\User::class,
-            'user_application_roles',
+            'iam_user_application_roles',
             'role_id',
             'user_id'
         )
             ->withPivot('assigned_by')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all access profiles that include this role.
+     */
+    public function accessProfiles(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            AccessProfile::class,
+            'access_profile_role_iam_map',
+            'role_id',
+            'access_profile_id'
+        )
             ->withTimestamps();
     }
 

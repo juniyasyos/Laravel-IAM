@@ -3,6 +3,7 @@
 namespace App\Filament\Panel\Resources\Users\Tables;
 
 use App\Models\User;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -25,49 +26,174 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->heading('Manajemen Pengguna')
+            ->description('Kelola akun IAM, hak akses aplikasi, dan status keamanan pengguna.')
             ->defaultSort('updated_at', 'desc')
             ->paginated([10, 25, 50, 100, 'all'])
             ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->searchPlaceholder('Cari nama atau email pengguna...')
             ->columns([
+
+                // Nama + email
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label('Pengguna')
                     ->weight('semibold')
                     ->description(fn(User $record) => $record->email)
-                    ->searchable()
+                    ->icon('heroicon-m-user-circle')
+                    ->searchable(['name', 'email'])
                     ->sortable()
                     ->toggleable(),
+
+                // DAFTAR APLIKASI YANG BISA DIAKSES
+                TextColumn::make('accessible_apps')
+                    ->label('Aplikasi')
+                    ->getStateUsing(function (User $record): ?string {
+                        $apps = $record->accessibleApps() ?? [];
+
+                        if (empty($apps)) {
+                            return null;
+                        }
+
+                        return collect($apps)
+                            ->map(fn(string $appKey) => strtoupper($appKey))
+                            ->implode(' • ');
+                    })
+                    ->badge()
+                    ->color('info')
+                    ->tooltip('Daftar aplikasi yang dapat diakses pengguna melalui IAM.')
+                    ->wrap()
+                    ->placeholder('Tidak ada akses aplikasi')
+                    ->toggleable(),
+
+                // ROLE PER APLIKASI (RINGKAS)
+                TextColumn::make('roles_by_app')
+                    ->label('Role per aplikasi')
+                    ->getStateUsing(function (User $record): ?string {
+                        $byApp = $record->rolesByApp(); // ['siimut' => ['admin', 'viewer'], ...]
+
+                        if (empty($byApp)) {
+                            return null;
+                        }
+
+                        return collect($byApp)
+                            ->map(function (array $roles, string $appKey) {
+                                $label = strtoupper($appKey);
+                                $rolesString = implode(', ', $roles);
+
+                                return "{$label}: {$rolesString}";
+                            })
+                            ->implode(' • ');
+                    })
+                    ->limit(60)
+                    ->tooltip(function (User $record): ?string {
+                        $byApp = $record->rolesByApp();
+
+                        if (empty($byApp)) {
+                            return null;
+                        }
+
+                        return collect($byApp)
+                            ->map(function (array $roles, string $appKey) {
+                                $label = strtoupper($appKey);
+                                $rolesString = implode(', ', $roles);
+
+                                return "{$label}: {$rolesString}";
+                            })
+                            ->implode(' • ');
+                    })
+                    ->wrap()
+                    ->placeholder('Belum ada role aplikasi')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // RINGKASAN IAM (jumlah aplikasi & profil)
+                TextColumn::make('iam_summary')
+                    ->label('Ringkasan IAM')
+                    ->getStateUsing(function (User $record): ?string {
+                        $apps = $record->accessibleApps() ?? [];
+                        $profilesCount = $record->accessProfiles()->count();
+
+                        if (empty($apps) && $profilesCount === 0) {
+                            return null;
+                        }
+
+                        return sprintf('%d aplikasi • %d profil akses', count($apps), $profilesCount);
+                    })
+                    ->badge()
+                    ->color('primary')
+                    ->tooltip('Ringkasan jumlah aplikasi terhubung dan profil akses global pengguna.')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // STATUS AKUN
                 ToggleColumn::make('active')
-                    ->label('Active')
+                    ->label('Status')
                     ->onColor('success')
                     ->offColor('secondary')
+                    ->onIcon('heroicon-m-check-badge')
+                    ->offIcon('heroicon-m-no-symbol')
                     ->afterStateUpdated(fn(User $record, bool $state) => $record->refresh())
                     ->sortable()
+                    ->tooltip(fn(User $record) => $record->active ? 'Akun aktif' : 'Akun nonaktif')
                     ->toggleable(),
+
+                // MFA / TWO FACTOR
                 IconColumn::make('mfa_enabled')
                     ->label('MFA')
                     ->boolean()
                     ->getStateUsing(fn(User $record) => ! empty($record->two_factor_secret ?? null))
-                    ->tooltip(fn(User $record) => ! empty($record->two_factor_secret ?? null) ? 'Enabled' : 'Disabled')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('last_login_at')
-                    ->label('Last login')
-                    ->since()
-                    ->placeholder('—')
-                    ->sortable()
+                    ->trueIcon('heroicon-m-lock-closed')
+                    ->falseIcon('heroicon-m-lock-open')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(fn(User $record) => ! empty($record->two_factor_secret ?? null) ? 'MFA aktif' : 'MFA tidak aktif')
                     ->toggleable(),
-                TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime()
+
+                // LAST LOGIN
+                TextColumn::make('last_login_at')
+                    ->label('Terakhir login')
+                    ->since()
+                    ->placeholder('Belum pernah login')
                     ->sortable()
+                    ->tooltip(fn(User $record) => $record->last_login_at?->format('d M Y H:i') ?? 'Belum pernah login')
+                    ->toggleable(),
+
+                // UPDATED AT
+                TextColumn::make('updated_at')
+                    ->label('Diperbarui')
+                    ->dateTime('d M Y H:i')
+                    ->sortable()
+                    ->color('gray')
                     ->toggleable(),
             ])
             ->filters([
-                TernaryFilter::make('active')->label('Active'),
+                TernaryFilter::make('active')
+                    ->label('Status akun')
+                    ->trueLabel('Aktif')
+                    ->falseLabel('Nonaktif')
+                    ->placeholder('Semua'),
+
+                TernaryFilter::make('mfa_enabled')
+                    ->label('MFA')
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereNotNull('two_factor_secret'),
+                        false: fn(Builder $query) => $query->whereNull('two_factor_secret'),
+                        blank: fn(Builder $query) => $query,
+                    )
+                    ->trueLabel('MFA aktif')
+                    ->falseLabel('MFA tidak aktif')
+                    ->placeholder('Semua'),
+
                 Filter::make('updated_between')
-                    ->label('Updated between')
+                    ->label('Rentang pembaruan')
                     ->schema([
-                        DatePicker::make('from')->native(false),
-                        DatePicker::make('until')->native(false),
+                        DatePicker::make('from')
+                            ->label('Dari tanggal')
+                            ->native(false),
+                        DatePicker::make('until')
+                            ->label('Sampai tanggal')
+                            ->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -75,44 +201,64 @@ class UsersTable
                             ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('updated_at', '<=', $date));
                     })
                     ->indicateUsing(function (array $data): array {
-                        $i = [];
+                        $indicators = [];
+
                         if (! empty($data['from'])) {
-                            $i[] = 'Updated from ' . $data['from'];
-                        }
-                        if (! empty($data['until'])) {
-                            $i[] = 'Updated until ' . $data['until'];
+                            $indicators[] = 'Diperbarui sejak ' . $data['from'];
                         }
 
-                        return $i;
+                        if (! empty($data['until'])) {
+                            $indicators[] = 'Diperbarui hingga ' . $data['until'];
+                        }
+
+                        return $indicators;
                     }),
-                // TrashedFilter::make(),
+
+                Filter::make('never_logged_in')
+                    ->label('Belum pernah login')
+                    ->query(fn(Builder $query) => $query->whereNull('last_login_at')),
             ])
+            ->filtersFormColumns(3)
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
                 ImpersonateTableAction::make()
                     ->label('Impersonate')
+                    ->icon('heroicon-m-arrow-right-on-rectangle')
                     ->visible(fn(User $record) => Auth::id() !== $record->id),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->label('Detail')
+                        ->icon('heroicon-m-eye'),
+
+                    EditAction::make()
+                        ->label('Edit')
+                        ->icon('heroicon-m-pencil-square'),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     BulkAction::make('activate')
-                        ->label('Activate')
+                        ->label('Aktifkan')
                         ->icon('heroicon-m-bolt')
+                        ->color('success')
                         ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
                         ->action(fn(Collection $records) => $records->each->update(['active' => true])),
+
                     BulkAction::make('deactivate')
-                        ->label('Deactivate')
+                        ->label('Nonaktifkan')
                         ->icon('heroicon-m-no-symbol')
                         ->color('secondary')
                         ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
                         ->action(fn(Collection $records) => $records->each->update(['active' => false])),
-                    DeleteBulkAction::make(),
-                    // ForceDeleteBulkAction::make(),
-                    // RestoreBulkAction::make(),
+
+                    DeleteBulkAction::make()
+                        ->label('Hapus')
+                        ->icon('heroicon-m-trash'),
                 ]),
             ])
+            ->emptyStateIcon('heroicon-m-user-group')
             ->emptyStateHeading('Belum ada user')
-            ->emptyStateDescription('Tambahkan user atau ubah filter pencarian untuk melihat data.');
+            ->emptyStateDescription('Tambahkan user baru atau ubah filter pencarian untuk melihat data.');
     }
 }
