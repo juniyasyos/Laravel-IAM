@@ -49,14 +49,6 @@ class PanelPanelProvider extends PanelProvider
                 'User Managements',
                 'Settings',
             ])
-            ->navigationItems([
-                \Filament\Navigation\NavigationItem::make('Pulse Monitoring')
-                    ->url('/pulse')
-                    ->icon('heroicon-o-chart-bar')
-                    ->sort(99)
-                    ->openUrlInNewTab(),
-            ])
-
             ->pages([
                 Dashboard::class,
             ])

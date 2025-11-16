@@ -13,7 +13,6 @@
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
         "laravel/passport": "^12",
-        "laravel/pulse": "^1.4",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
         "spatie/laravel-activitylog": "^4",

@@ -195,24 +195,4 @@ return [
         'denied_redirect' => env('IAM_ADMIN_DENIED_REDIRECT', null), // null = show 403, or '/' for home
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Pulse Dashboard Access
-    |--------------------------------------------------------------------------
-    |
-    | Configure access to Laravel Pulse monitoring dashboard.
-    | By default, uses the same rules as IAM admin panel.
-    | Set 'use_iam_admin_rules' to false to configure separately.
-    |
-    */
-    'pulse_access' => [
-        'use_iam_admin_rules' => env('PULSE_USE_IAM_ADMIN_RULES', true),
-
-        'allowed_emails' => array_filter(
-            array_map('trim', explode(',', env('PULSE_ADMIN_EMAILS', 'admin@gmail.com')))
-        ),
-
-        'callback' => null,
-    ],
-
 ];
