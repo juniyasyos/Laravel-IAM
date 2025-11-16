@@ -114,4 +114,105 @@ return [
         // 'siimut' => ['viewer'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | IAM Admin Access Control
+    |--------------------------------------------------------------------------
+    |
+    | Configure who can access IAM admin panel (Filament) and monitoring tools (Pulse).
+    | You can use email whitelist, custom callback function, or both.
+    |
+    */
+
+    'admin_access' => [
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Access Method
+        |--------------------------------------------------------------------------
+        |
+        | Determine how to check admin access:
+        | - 'email': Only check email whitelist
+        | - 'callback': Use custom callback function
+        | - 'both': Check email AND callback (both must pass)
+        | - 'either': Check email OR callback (one must pass)
+        |
+        */
+        'method' => env('IAM_ADMIN_ACCESS_METHOD', 'email'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Email Whitelist
+        |--------------------------------------------------------------------------
+        |
+        | List of email addresses that are allowed to access IAM admin panel.
+        | Add emails to .env as comma-separated: IAM_ADMIN_EMAILS="admin@gmail.com,user@example.com"
+        |
+        */
+        'allowed_emails' => array_filter(
+            array_map('trim', explode(',', env('IAM_ADMIN_EMAILS', 'admin@gmail.com')))
+        ),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Custom Access Callback
+        |--------------------------------------------------------------------------
+        |
+        | Define custom logic to determine admin access.
+        | The callback receives the authenticated User model.
+        | Return true to grant access, false to deny.
+        |
+        | Example:
+        | 'callback' => function ($user) {
+        |     return $user->is_super_admin || $user->hasPermissionTo('access-iam-panel');
+        | }
+        |
+        */
+        'callback' => null,
+
+        /*
+        |--------------------------------------------------------------------------
+        | Access Denied Message
+        |--------------------------------------------------------------------------
+        |
+        | Message to display when access is denied.
+        |
+        */
+        'denied_message' => env(
+            'IAM_ADMIN_DENIED_MESSAGE',
+            'Access denied. Only authorized IAM administrators can access this area.'
+        ),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Redirect After Denial
+        |--------------------------------------------------------------------------
+        |
+        | Where to redirect users when access is denied.
+        | Set to null to show 403 error page instead.
+        |
+        */
+        'denied_redirect' => env('IAM_ADMIN_DENIED_REDIRECT', null), // null = show 403, or '/' for home
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pulse Dashboard Access
+    |--------------------------------------------------------------------------
+    |
+    | Configure access to Laravel Pulse monitoring dashboard.
+    | By default, uses the same rules as IAM admin panel.
+    | Set 'use_iam_admin_rules' to false to configure separately.
+    |
+    */
+    'pulse_access' => [
+        'use_iam_admin_rules' => env('PULSE_USE_IAM_ADMIN_RULES', true),
+        
+        'allowed_emails' => array_filter(
+            array_map('trim', explode(',', env('PULSE_ADMIN_EMAILS', 'admin@gmail.com')))
+        ),
+        
+        'callback' => null,
+    ],
+
 ];

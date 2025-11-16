@@ -70,6 +70,7 @@ class PanelPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 \App\Http\Middleware\Authenticate::class,
+                \App\Http\Middleware\CheckIAMAdmin::class, // Only IAM admins can access
             ]);
 
         if (! empty($name)) {
@@ -77,7 +78,7 @@ class PanelPanelProvider extends PanelProvider
         }
 
         if (! empty($version)) {
-            $panel->renderHook('panels::topbar.end', fn () => '<div class="hidden sm:flex items-center text-xs text-gray-500 dark:text-gray-400 ml-2">v' . e((string) $version) . '</div>');
+            $panel->renderHook('panels::topbar.end', fn() => '<div class="hidden sm:flex items-center text-xs text-gray-500 dark:text-gray-400 ml-2">v' . e((string) $version) . '</div>');
         }
 
         return $panel;

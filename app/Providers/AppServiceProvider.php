@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\AppRegistry;
 use App\Services\Contracts\AppRegistryContract;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,8 +21,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot(Gate $gate): void
     {
-        //
+        $gate->define('viewPulse', function (User $user) {
+            return true;
+        });
     }
 }

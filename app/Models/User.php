@@ -148,4 +148,41 @@ class User extends Authenticatable
             ->values()
             ->toArray();
     }
+
+    /**
+     * Check if user has IAM admin role (for any application).
+     * Used for Filament panel and Pulse dashboard access control.
+     *
+     * @return bool
+     */
+    public function isIAMAdmin(): bool
+    {
+        // Check direct admin role
+        $hasDirectAdmin = \App\Domain\Iam\Models\ApplicationRole::query()
+            ->where('slug', 'admin')
+            ->whereIn('id', function ($query) {
+                $query->select('role_id')
+                    ->from('iam_user_application_roles')
+                    ->where('user_id', $this->id);
+            })
+            ->exists();
+
+        if ($hasDirectAdmin) {
+            return true;
+        }
+
+        // Check admin role via access profiles
+        return \App\Domain\Iam\Models\ApplicationRole::query()
+            ->where('slug', 'admin')
+            ->whereIn('id', function ($query) {
+                $query->select('role_id')
+                    ->from('access_profile_role_iam_map')
+                    ->whereIn('access_profile_id', function ($subQuery) {
+                        $subQuery->select('access_profile_id')
+                            ->from('user_access_profiles')
+                            ->where('user_id', $this->id);
+                    });
+            })
+            ->exists();
+    }
 }
