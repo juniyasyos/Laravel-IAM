@@ -265,7 +265,7 @@ php artisan tinker
 ```
 
 ```php
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use App\Models\User;
 
 // Create application
@@ -396,7 +396,6 @@ Expected response:
   "name": "Dr. John Doe",
   "email": "doctor@rs.id",
   "roles": ["doctor"],
-  "permissions": ["read:patients", "write:patients", ...],
   "unit": "ICU",
   "app_key": "siimut.app"
 }

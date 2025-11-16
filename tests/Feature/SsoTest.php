@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use App\Models\User;
 use App\Services\Sso\TokenService;
 use Illuminate\Support\Carbon;

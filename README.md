@@ -136,7 +136,6 @@ Visit: `http://localhost:8000/admin`
   "name": "Dr. John Doe",
   "email": "doctor@rs.id",
   "roles": ["doctor"],
-  "permissions": ["read:patients", "write:patients"],
   "unit": "ICU",
   "app_key": "siimut.app",
   "exp": 1700003600
@@ -164,7 +163,7 @@ Visit: `http://localhost:8000/admin`
 ```php
 php artisan tinker
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 
 $app = Application::create([
     'app_key' => 'myapp.app',

@@ -7,40 +7,47 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Middleware untuk validasi permission berdasarkan IAM token.
- * Gunakan di route: ->middleware('iam.permission:create-post,edit-post')
+ * Middleware untuk validasi role berdasarkan IAM token.
+ * Gunakan di route: ->middleware('iam.role:admin,doctor')
+ * 
+ * Note: Permissions adalah tanggung jawab client application.
+ * Middleware ini hanya validasi roles dari IAM.
  */
 class CheckIAMPermission
 {
     /**
      * Handle an incoming request.
      *
-     * @param  string|array  $permissions
+     * @param  string|array  $roles  Role slugs yang diperbolehkan
      */
-    public function handle(Request $request, Closure $next, ...$permissions): Response
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        $userPermissions = $request->get('iam_user_permissions', []);
+        $userRoles = $request->get('iam_user_roles', []);
 
-        if (empty($userPermissions)) {
+        if (empty($userRoles)) {
             return response()->json([
                 'error' => 'forbidden',
-                'message' => 'No permissions found in token',
+                'message' => 'No roles found in token',
             ], 403);
         }
 
-        // Check if user has any of the required permissions
-        $hasPermission = false;
-        foreach ($permissions as $permission) {
-            if (in_array($permission, $userPermissions)) {
-                $hasPermission = true;
+        // Extract role slugs from role objects
+        $userRoleSlugs = collect($userRoles)->pluck('slug')->toArray();
+
+        // Check if user has any of the required roles
+        $hasRole = false;
+        foreach ($roles as $role) {
+            if (in_array($role, $userRoleSlugs)) {
+                $hasRole = true;
                 break;
             }
         }
 
-        if (! $hasPermission) {
+        if (! $hasRole) {
             return response()->json([
                 'error' => 'forbidden',
-                'message' => 'Insufficient permissions. Required: '.implode(' or ', $permissions),
+                'message' => 'Insufficient role. Required: '.implode(' or ', $roles),
+                'user_roles' => $userRoleSlugs,
             ], 403);
         }
 

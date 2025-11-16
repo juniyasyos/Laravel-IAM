@@ -157,12 +157,6 @@ User table sudah ada, dengan penambahan kolom `unit`:
   "email": "john.doe@rs.id",
   "app_key": "siimut.app",
   "roles": ["doctor", "department_head"],
-  "permissions": [
-    "read:patients",
-    "write:patients",
-    "read:reports",
-    "approve:prescriptions"
-  ],
   "unit": "ICU",
   "type": "access"
 }
@@ -403,7 +397,6 @@ POST /oauth/introspect
   "name": "Dr. John Doe",
   "email": "john.doe@rs.id",
   "roles": ["doctor"],
-  "permissions": ["read:patients", "write:patients"],
   "unit": "ICU",
   "exp": 1700003600,
   "iat": 1700000000
@@ -432,7 +425,6 @@ Authorization: Bearer ACCESS_TOKEN
   "name": "Dr. John Doe",
   "email": "john.doe@rs.id",
   "roles": ["doctor"],
-  "permissions": ["read:patients", "write:patients"],
   "unit": "ICU",
   "app_key": "siimut.app"
 }
@@ -1021,7 +1013,7 @@ Log::info('User Login', [
 
 namespace Tests\Unit;
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use App\Models\User;
 use App\Services\JWTTokenService;
 use Tests\TestCase;
@@ -1068,7 +1060,7 @@ class JWTTokenServiceTest extends TestCase
 
 namespace Tests\Feature;
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use App\Models\User;
 use Tests\TestCase;
 

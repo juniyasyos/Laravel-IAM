@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

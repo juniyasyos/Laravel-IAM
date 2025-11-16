@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use App\Services\Contracts\AppRegistryContract;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;

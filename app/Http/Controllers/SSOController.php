@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Application;
+use App\Domain\Iam\Models\Application;
+use App\Domain\Iam\Services\UserDataService;
 use App\Models\User;
 use App\Services\JWTTokenService;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,8 @@ use Illuminate\Support\Str;
 class SSOController extends Controller
 {
     public function __construct(
-        private JWTTokenService $jwtService
+        private JWTTokenService $jwtService,
+        private UserDataService $userDataService
     ) {}
 
     /**
@@ -181,11 +183,16 @@ class SSOController extends Controller
         $accessToken = $this->jwtService->generateAccessToken($user, $application);
         $refreshToken = $this->jwtService->generateRefreshToken($user, $application);
 
+        // Get comprehensive user data
+        $userData = $this->userDataService->getUserData($user, $application, true);
+
         return response()->json([
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
             'expires_in' => $application->getTokenExpirySeconds(),
+            'user' => $userData,
+            'issued_at' => now()->toIso8601String(),
         ]);
     }
 
@@ -327,12 +334,20 @@ class SSOController extends Controller
                 return response()->json(['active' => false]);
             }
 
+            // Get user for comprehensive data
+            $user = User::find($decoded->sub);
+            if (!$user) {
+                return response()->json(['active' => false]);
+            }
+
+            $userData = $this->userDataService->getUserData($user, $application, false);
+
             return response()->json([
                 'active' => true,
                 'sub' => $decoded->sub,
                 'name' => $decoded->name ?? null,
                 'email' => $decoded->email ?? null,
-                'roles' => $decoded->roles ?? [],
+                'roles' => $userData['application']['roles'] ?? [],
                 'exp' => $decoded->exp,
                 'iat' => $decoded->iat,
             ]);
@@ -368,12 +383,23 @@ class SSOController extends Controller
                 ], 401);
             }
 
+            // Get user
+            $user = User::findOrFail($decoded->sub);
+            
+            // Get application
+            $application = Application::findByKey($decoded->app_key);
+
+            // Get comprehensive user data
+            $userData = $this->userDataService->getUserData($user, $application, true);
+
             return response()->json([
                 'sub' => $decoded->sub,
-                'name' => $decoded->name ?? null,
-                'email' => $decoded->email ?? null,
-                'roles' => $decoded->roles ?? [],
-                'app_key' => $decoded->app_key,
+                'user' => $userData,
+                'token_info' => [
+                    'issued_at' => $decoded->iat,
+                    'expires_at' => $decoded->exp,
+                    'app_key' => $decoded->app_key,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([

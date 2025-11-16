@@ -2,7 +2,8 @@
 
 namespace App\Services\Sso;
 
-use App\Models\Application;
+use App\Domain\Iam\Models\Application;
+use App\Domain\Iam\Services\UserDataService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -11,8 +12,10 @@ use RuntimeException;
 
 class TokenService
 {
-    public function __construct(private readonly SsoLogger $logger)
-    {
+    public function __construct(
+        private readonly SsoLogger $logger,
+        private readonly UserDataService $userDataService
+    ) {
     }
 
     /**
@@ -31,13 +34,18 @@ class TokenService
             ];
 
             $issuedAt = Carbon::now();
-            $expiresAt = $issuedAt->clone()->addSeconds($this->getTtl());
+            $expiresAt = $issuedAt->clone()->addSeconds($application->getTokenExpirySeconds());
+
+            // Get token payload with comprehensive user data
+            $tokenPayload = $this->userDataService->getTokenPayload($user, $application);
 
             $payload = [
                 'iss' => $this->getIssuer(),
-                'sub' => $user->getAuthIdentifier(),
+                'sub' => (string) $user->getAuthIdentifier(),
                 'email' => $user->email ?? null,
+                'name' => $user->name ?? null,
                 'app' => $application->app_key,
+                'roles' => $tokenPayload['roles'] ?? [],
                 'iat' => $issuedAt->getTimestamp(),
                 'exp' => $expiresAt->getTimestamp(),
             ];
@@ -56,11 +64,12 @@ class TokenService
                 userId: (int) $user->getAuthIdentifier(),
                 appKey: $application->app_key,
                 tokenPreview: $tokenPreview,
-                ttl: $this->getTtl(),
+                ttl: $application->getTokenExpirySeconds(),
                 additionalContext: [
                     'issuer' => $this->getIssuer(),
                     'token_length' => strlen($token),
                     'user_email' => $user->email ?? null,
+                    'roles_count' => count($payload['roles']),
                 ]
             );
 

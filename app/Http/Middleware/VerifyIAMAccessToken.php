@@ -59,7 +59,7 @@ class VerifyIAMAccessToken
                 'iam_user_email' => $decoded->email ?? null,
                 'iam_user_name' => $decoded->name ?? null,
                 'iam_user_roles' => $decoded->roles ?? [],
-                'iam_user_permissions' => $decoded->permissions ?? [],
+                'iam_user_roles' => $decoded->roles ?? [],
                 'iam_user_unit' => $decoded->unit ?? null,
             ]);
 

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Application;
+use  App\Domain\Iam\Models\Application;;
 use App\Models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -40,8 +40,7 @@ class JWTTokenService
             'name' => $user->name,
             'email' => $user->email,
             'app_key' => $application->app_key,
-            'roles' => $this->getUserRoles($user),
-            'permissions' => $this->getUserPermissions($user),
+            'roles' => $this->getUserRolesForApplication($user, $application),
             'type' => 'access',
         ];
 
@@ -146,34 +145,30 @@ class JWTTokenService
     }
 
     /**
-     * Get user roles as array of role names.
+     * Get user IAM roles for specific application.
      *
      * @param  User  $user
+     * @param  Application  $application
      * @return array
      */
-    private function getUserRoles(User $user): array
+    private function getUserRolesForApplication(User $user, Application $application): array
     {
-        if (method_exists($user, 'getRoleNames')) {
-            return $user->getRoleNames()->toArray();
-        }
+        // Get effective roles (direct + via access profiles) for this application
+        $roles = $user->effectiveApplicationRoles()
+            ->with('application')
+            ->whereHas('application', function ($query) use ($application) {
+                $query->where('id', $application->id);
+            })
+            ->get();
 
-        // Fallback jika Spatie Permission belum terinstall
-        return [];
-    }
-
-    /**
-     * Get user permissions as array of permission names.
-     *
-     * @param  User  $user
-     * @return array
-     */
-    private function getUserPermissions(User $user): array
-    {
-        if (method_exists($user, 'getAllPermissions')) {
-            return $user->getAllPermissions()->pluck('name')->toArray();
-        }
-
-        // Fallback jika Spatie Permission belum terinstall
-        return [];
+        return $roles->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'slug' => $role->slug,
+                'name' => $role->name,
+                'is_system' => $role->is_system,
+                'description' => $role->description,
+            ];
+        })->toArray();
     }
 }

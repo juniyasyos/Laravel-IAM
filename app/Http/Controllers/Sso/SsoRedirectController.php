@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Sso;
 
 use App\Http\Controllers\Controller;
-use App\Models\Application;
 use App\Services\Sso\TokenService;
 use App\Services\Sso\SsoLogger;
 use Illuminate\Http\RedirectResponse;
+use App\Domain\Iam\Models\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;

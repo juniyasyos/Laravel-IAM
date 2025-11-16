@@ -92,9 +92,8 @@ Route::get('/test-sso-complete-flow', function (Request $request) {
             'sub' => $accessPayload->sub,
             'name' => $accessPayload->name,
             'email' => $accessPayload->email,
-            'roles' => $accessPayload->roles,
-            'permissions' => $accessPayload->permissions,
-            'unit' => $accessPayload->unit ?? null,
+            'roles' => $accessPayload->roles ?? [],
+            'unit' => $user->unit,
             'app_key' => $accessPayload->app_key,
             'type' => $accessPayload->type,
             'exp' => date('Y-m-d H:i:s', $accessPayload->exp),
@@ -110,8 +109,7 @@ Route::get('/test-sso-complete-flow', function (Request $request) {
             'name' => $user->name,
             'email' => $user->email,
             'unit' => $user->unit,
-            'roles' => $user->getRoleNames(),
-            'permissions' => $user->getAllPermissions()->pluck('name'),
+            'roles' => $accessPayload->roles ?? [],
         ],
         'app_info' => [
             'app_key' => $app->app_key,
@@ -182,8 +180,8 @@ Route::get('/test-token', function (Request $request) {
                 'email' => $user->email,
                 'unit' => $user->unit,
                 'active' => $user->active,
-                'roles' => $user->getRoleNames(),
-                'permissions_count' => $user->getAllPermissions()->count(),
+                'roles' => $accessPayload->roles ?? [],
+                'roles_count' => count($accessPayload->roles ?? []),
             ],
             'application' => [
                 'app_key' => $app->app_key,
@@ -488,9 +486,8 @@ Route::get('/test-integration', function (Request $request) {
         $payload = $jwtService->verifyToken($token);
         $results['test_4_token_verification'] = [
             'success' => !!$payload,
-            'has_required_claims' => isset($payload->sub, $payload->email, $payload->roles, $payload->permissions),
+            'has_required_claims' => isset($payload->sub, $payload->email, $payload->roles),
             'roles_count' => count($payload->roles ?? []),
-            'permissions_count' => count($payload->permissions ?? []),
         ];
 
         // Test 5: Refresh token
