@@ -24,18 +24,20 @@ class AccessProfilesTable
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->description(fn ($record) => $record->description),
+                    ->description(fn($record) => $record->description),
                 TextColumn::make('slug')
                     ->label('Slug')
                     ->searchable()
                     ->fontFamily('mono')
                     ->size('sm')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->color('gray'),
                 TextColumn::make('roles_count')
                     ->label('Assigned Roles')
                     ->counts('roles')
                     ->badge()
                     ->color('info')
+                    ->toggleable()
                     ->sortable(),
                 TextColumn::make('users_count')
                     ->label('Users')
@@ -43,6 +45,7 @@ class AccessProfilesTable
                     ->badge()
                     ->color('success')
                     ->sortable()
+                    ->toggleable()
                     ->toggleable(),
                 IconColumn::make('is_system')
                     ->label('System')
@@ -51,10 +54,12 @@ class AccessProfilesTable
                     ->falseIcon('heroicon-o-pencil')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->tooltip(fn (bool $state): string => $state ? 'System profile (protected)' : 'Custom profile'),
+                    ->toggleable()
+                    ->tooltip(fn(bool $state): string => $state ? 'System profile (protected)' : 'Custom profile'),
                 ToggleColumn::make('is_active')
                     ->label('Active')
                     ->onColor('success')
+                    ->toggleable()
                     ->offColor('danger'),
                 TextColumn::make('updated_at')
                     ->label('Last Updated')

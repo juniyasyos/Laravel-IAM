@@ -13,6 +13,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AccessProfilesRelationManager extends RelationManager
 {
@@ -72,7 +73,7 @@ class AccessProfilesRelationManager extends RelationManager
                     ->modalHeading('Assign Access Profile to User')
                     ->modalDescription('Select an access profile to grant this user multiple application roles at once.')
                     ->preloadRecordSelect()
-                    ->form(fn (AttachAction $action): array => [
+                    ->schema(fn (AttachAction $action): array => [
                         Select::make('recordId')
                             ->label('Access Profile')
                             ->options(AccessProfile::query()
@@ -84,10 +85,9 @@ class AccessProfilesRelationManager extends RelationManager
                             ->helperText('Only active profiles are shown.'),
                     ])
                     ->after(function () {
-                        // Set assigned_by to current user
                         $userId = Auth::id();
                         if ($userId && $this->getOwnerRecord() && method_exists($this, 'getRecord')) {
-                            \DB::table('user_access_profiles')
+                            DB::table('user_access_profiles')
                                 ->where('user_id', $this->getOwnerRecord()->id)
                                 ->whereNull('assigned_by')
                                 ->update(['assigned_by' => $userId]);

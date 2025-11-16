@@ -61,7 +61,7 @@ class UsersRelationManager extends RelationManager
                     ->modalHeading('Assign User to Profile')
                     ->modalDescription('Select users to assign this access profile.')
                     ->preloadRecordSelect()
-                    ->form(fn (AttachAction $action): array => [
+                    ->schema(fn (AttachAction $action): array => [
                         Select::make('recordId')
                             ->label('User')
                             ->options(User::query()->where('active', true)->pluck('name', 'id'))
