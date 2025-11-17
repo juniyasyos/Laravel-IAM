@@ -16,8 +16,7 @@ class SsoRedirectController extends Controller
     public function __construct(
         private readonly TokenService $tokens,
         private readonly SsoLogger $logger
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): RedirectResponse
     {
@@ -30,7 +29,7 @@ class SsoRedirectController extends Controller
         $this->logger->logWithRequest($request, SsoLogger::CATEGORY_AUTH_FLOW, 'sso_redirect_request', [
             'app_key' => $validated['app'],
             'user_id' => $request->user()?->id,
-            'user_email' => $request->user()?->email,
+            'user_nip' => $request->user()?->nip,
         ]);
 
         try {
@@ -77,7 +76,7 @@ class SsoRedirectController extends Controller
                 additionalContext: [
                     'application_id' => $application->id,
                     'application_name' => $application->name ?? 'N/A',
-                    'user_email' => $request->user()->email,
+                    'user_nip' => $request->user()->nip,
                 ]
             );
 
@@ -138,4 +137,3 @@ class SsoRedirectController extends Controller
         }
     }
 }
-

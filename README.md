@@ -11,9 +11,21 @@ Central Identity & Access Management (IAM) server dengan Single Sign-On (SSO) da
 
 ---
 
+## ⚠️ Important: NIP-Based Authentication
+
+**Version 2.0** - Sistem telah dioptimalkan untuk menggunakan **NIP (Nomor Induk Pegawai)** sebagai identifier utama menggantikan email.
+
+- ✅ **Login Field**: Gunakan `nip` bukan `email`
+- ✅ **Primary Identifier**: NIP (unique, required)
+- ✅ **Email**: Opsional (nullable)
+- 📚 **Migration Guide**: Lihat [NIP-MIGRATION-SUMMARY.md](./docs/NIP-MIGRATION-SUMMARY.md)
+
+---
+
 ## ✨ Features
 
 - 🔐 **Central Authentication** - Single source of truth untuk user authentication
+- 🆔 **NIP-Based Login** - Authentication menggunakan NIP sebagai identifier utama
 - 🎫 **OAuth2-like SSO Flow** - Authorization code grant dengan JWT tokens
 - 👥 **RBAC Management** - Roles & Permissions menggunakan Spatie Permission
 - 🔑 **JWT Tokens** - Access & Refresh tokens dengan signature verification
@@ -85,10 +97,12 @@ php artisan db:seed --class=IAMSampleDataSeeder
 
 This creates sample users, roles, permissions, and applications.
 
-**Sample Credentials:**
-- Admin: `admin@rs.id` / `password`
-- Doctor: `doctor@rs.id` / `password`
-- Nurse: `nurse@rs.id` / `password`
+**Sample Credentials (NIP-based):**
+- Admin: NIP `admin001` / password `password`
+- Doctor: NIP `doctor001` / password `password`
+- Nurse: NIP `nurse001` / password `password`
+
+> **Note**: Login menggunakan NIP, bukan email. Email bersifat opsional.
 
 **Sample Applications:**
 - SIIMUT: `siimut.app` / `siimut_secret_key_123`
@@ -106,10 +120,17 @@ Visit: `http://localhost:8000/admin`
 
 ## 📚 Documentation
 
+### 🆕 NIP-Based Authentication (v2.0)
+- **[SSO Client Integration - NIP](docs/SSO-CLIENT-NIP-INTEGRATION.md)** - 📖 Panduan lengkap integrasi SSO dengan NIP
+- **[SSO Quick Start - NIP](docs/SSO-NIP-QUICK-START.md)** - 🚀 Quick start guide (5 menit)
+- **[NIP Migration Summary](docs/NIP-MIGRATION-SUMMARY.md)** - 🔄 Summary perubahan dan migration guide
+
 ### Core Documentation
 - **[IAM + SSO RBAC Full Documentation](docs/IAM-SSO-RBAC-DOCUMENTATION.md)** - Complete technical documentation
 - **[Client Integration Guide](docs/CLIENT-INTEGRATION.md)** - How to integrate client applications
 - **[Setup Guide](docs/SETUP.md)** - Installation & deployment guide
+- **[API Response Format](docs/API-RESPONSE-FORMAT.md)** - API response structure
+- **[Quick Reference](docs/QUICK-REFERENCE.md)** - Quick reference guide
 
 ### What's Included
 
@@ -129,18 +150,26 @@ Visit: `http://localhost:8000/admin`
 - `GET /oauth/userinfo` - User information
 - `POST /oauth/revoke` - Token revocation
 
-**JWT Token Payload:**
+**JWT Token Payload (v2.0 - NIP-based):**
 ```json
 {
-  "sub": 123,
-  "name": "Dr. John Doe",
+  "iss": "https://iam.example.com",
+  "sub": "123",
+  "nip": "198501012010121001",
   "email": "doctor@rs.id",
+  "name": "Dr. John Doe",
+  "app": "siimut.app",
   "roles": ["doctor"],
-  "unit": "ICU",
-  "app_key": "siimut.app",
-  "exp": 1700003600
+  "iat": 1700294400,
+  "exp": 1700298000
 }
 ```
+
+**Key Changes:**
+- ⭐ `nip`: PRIMARY IDENTIFIER (new, required)
+- 🔄 `email`: Optional (nullable)
+- ✅ `iss`: Token issuer
+- ✅ `app`: Application key (updated from `app_key`)
 
 ---
 

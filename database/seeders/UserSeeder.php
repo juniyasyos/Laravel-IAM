@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
         User::factory()->create([
             'nip' => '0000.00000',
             'name' => 'admin',
-            'email' => 'admin@admin.com',
+            'email' => 'admin@gmail.com',
             'password' => Hash::make('adminpassword'),
             'active' => true,
         ]);

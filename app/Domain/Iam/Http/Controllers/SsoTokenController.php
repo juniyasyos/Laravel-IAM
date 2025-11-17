@@ -63,6 +63,7 @@ class SsoTokenController extends Controller
                 'expires_in' => $claims->getTimeUntilExpiry(),
                 'user' => [
                     'id' => $user->id,
+                    'nip' => $user->nip,
                     'name' => $user->name,
                     'email' => $user->email,
                 ],
@@ -128,9 +129,9 @@ class SsoTokenController extends Controller
             ], config('iam.auth_code_ttl', 300));
 
             // Build redirect URL
-            $redirectUrl = $request->redirect_uri.'?code='.$code;
+            $redirectUrl = $request->redirect_uri . '?code=' . $code;
             if ($request->has('state')) {
-                $redirectUrl .= '&state='.$request->state;
+                $redirectUrl .= '&state=' . $request->state;
             }
 
             return response()->json([
@@ -209,6 +210,7 @@ class SsoTokenController extends Controller
             return response()->json([
                 'active' => true,
                 'sub' => $claims->userId,
+                'nip' => $claims->nip ?? null,
                 'email' => $claims->email,
                 'name' => $claims->name,
                 'apps' => $claims->apps,
@@ -244,6 +246,7 @@ class SsoTokenController extends Controller
 
             return response()->json([
                 'sub' => $claims->userId,
+                'nip' => $claims->nip ?? null,
                 'email' => $claims->email,
                 'name' => $claims->name,
                 'apps' => $claims->apps,

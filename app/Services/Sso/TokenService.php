@@ -15,8 +15,7 @@ class TokenService
     public function __construct(
         private readonly SsoLogger $logger,
         private readonly UserDataService $userDataService
-    ) {
-    }
+    ) {}
 
     /**
      * Issue a signed JWT for the given user and application.
@@ -42,6 +41,7 @@ class TokenService
             $payload = [
                 'iss' => $this->getIssuer(),
                 'sub' => (string) $user->getAuthIdentifier(),
+                'nip' => $user->nip ?? null,
                 'email' => $user->email ?? null,
                 'name' => $user->name ?? null,
                 'app' => $application->app_key,
@@ -68,7 +68,7 @@ class TokenService
                 additionalContext: [
                     'issuer' => $this->getIssuer(),
                     'token_length' => strlen($token),
-                    'user_email' => $user->email ?? null,
+                    'user_nip' => $user->nip ?? null,
                     'roles_count' => count($payload['roles']),
                 ]
             );

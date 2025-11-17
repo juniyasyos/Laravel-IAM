@@ -55,7 +55,8 @@ class SsoVerifyController extends Controller
             ]);
 
             $response = [
-                // Backwards compatible: some clients expect `email` at the root level
+                // Backwards compatible: some clients expect `nip` at the root level
+                'nip' => $payload['nip'] ?? null,
                 'email' => $payload['email'] ?? null,
 
                 // Token info

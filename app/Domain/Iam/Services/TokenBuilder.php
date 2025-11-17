@@ -33,6 +33,7 @@ class TokenBuilder
 
         return new TokenClaims(
             userId: $user->id,
+            nip: $user->nip,
             email: $user->email,
             name: $user->name,
             apps: $apps,
@@ -84,7 +85,7 @@ class TokenBuilder
 
             return TokenClaims::fromArray($payload);
         } catch (\Exception $e) {
-            throw new \Exception('Invalid or expired token: '.$e->getMessage());
+            throw new \Exception('Invalid or expired token: ' . $e->getMessage());
         }
     }
 

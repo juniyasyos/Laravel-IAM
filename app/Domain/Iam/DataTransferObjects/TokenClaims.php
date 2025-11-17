@@ -6,7 +6,8 @@ class TokenClaims
 {
     /**
      * @param  int  $userId  User ID (sub claim)
-     * @param  string  $email  User email
+     * @param  string|null  $nip  User NIP (primary identifier)
+     * @param  string|null  $email  User email
      * @param  string  $name  User name
      * @param  array<string>  $apps  List of app_keys user has access to
      * @param  array<string, array<string>>  $rolesByApp  Map of app_key to array of role slugs
@@ -19,7 +20,8 @@ class TokenClaims
      */
     public function __construct(
         public readonly int $userId,
-        public readonly string $email,
+        public readonly ?string $nip,
+        public readonly ?string $email,
         public readonly string $name,
         public readonly array $apps,
         public readonly array $rolesByApp,
@@ -40,6 +42,7 @@ class TokenClaims
     {
         $payload = [
             'sub' => $this->userId,
+            'nip' => $this->nip,
             'email' => $this->email,
             'name' => $this->name,
             'apps' => $this->apps,
@@ -61,7 +64,8 @@ class TokenClaims
     {
         return new self(
             userId: $data['sub'] ?? 0,
-            email: $data['email'] ?? '',
+            nip: $data['nip'] ?? null,
+            email: $data['email'] ?? null,
             name: $data['name'] ?? '',
             apps: $data['apps'] ?? [],
             rolesByApp: $data['roles_by_app'] ?? [],
