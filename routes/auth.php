@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -16,7 +17,8 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store'])
         ->name('register.store');
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    // Use WelcomeController for login page (same view as home)
+    Route::get('login', [WelcomeController::class, 'index'])
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store'])

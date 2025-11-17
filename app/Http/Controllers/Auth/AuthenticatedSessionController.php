@@ -15,9 +15,7 @@ use Laravel\Fortify\Features;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function __construct(private readonly SsoLogger $logger)
-    {
-    }
+    public function __construct(private readonly SsoLogger $logger) {}
 
     /**
      * Show the login page.
@@ -109,10 +107,8 @@ class AuthenticatedSessionController extends Controller
                 ]
             );
 
-            $intended = $request->session()->pull(
-                'url.intended',
-                route('filament.' . config('panel.id', 'panel') . '.pages.dashboard', absolute: true)
-            );
+            // Default redirect to home page (root) instead of panel
+            $intended = $request->session()->pull('url.intended', route('home', absolute: true));
 
             if ($request->session()->has('sso.intended_app')) {
                 $appKey = (string) $request->session()->pull('sso.intended_app');
