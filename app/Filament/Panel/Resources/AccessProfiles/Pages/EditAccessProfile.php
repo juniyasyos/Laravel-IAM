@@ -30,13 +30,4 @@ class EditAccessProfile extends EditRecord
 
         return $data;
     }
-
-    protected function afterSave(): void
-    {
-        if ($this->record) {
-            $this->record->roles()->sync($this->tempRoleIds);
-        }
-
-        parent::afterSave();
-    }
 }
