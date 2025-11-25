@@ -15,7 +15,7 @@ class UserRoleAssignmentService
      *
      * @throws \Exception
      */
-    public function assignRoleToUser(User $user, ApplicationRole $role, ?User $assignedBy = null): void
+    public function assignRoleToUser(User $user, UserApplicationRole $role, ?User $assignedBy = null): void
     {
         // Check if user already has this role
         $existing = UserApplicationRole::where('user_id', $user->id)
@@ -36,7 +36,7 @@ class UserRoleAssignmentService
     /**
      * Revoke a role from a user.
      */
-    public function revokeRoleFromUser(User $user, ApplicationRole $role): void
+    public function revokeRoleFromUser(User $user, UserApplicationRole $role): void
     {
         UserApplicationRole::where('user_id', $user->id)
             ->where('role_id', $role->id)
@@ -54,7 +54,7 @@ class UserRoleAssignmentService
     public function syncRolesForUserAndApp(User $user, Application $app, array $roleSlugs, ?User $assignedBy = null): void
     {
         // Get all role IDs for this application
-        $roles = ApplicationRole::where('application_id', $app->id)
+        $roles = UserApplicationRole::where('application_id', $app->id)
             ->whereIn('slug', $roleSlugs)
             ->get();
 
@@ -119,7 +119,7 @@ class UserRoleAssignmentService
      */
     public function getRolesForUserInApp(User $user, Application $app): Collection
     {
-        return ApplicationRole::whereHas('users', function ($query) use ($user) {
+        return UserApplicationRole::whereHas('users', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })
             ->where('application_id', $app->id)
@@ -139,7 +139,7 @@ class UserRoleAssignmentService
     /**
      * Get all users with a specific role.
      */
-    public function getUsersWithRole(ApplicationRole $role): Collection
+    public function getUsersWithRole(UserApplicationRole $role): Collection
     {
         return $role->users;
     }

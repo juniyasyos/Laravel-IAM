@@ -36,7 +36,7 @@ class ApplicationsSeeder extends Seeder
                 'redirect_uris' => [
                     'http://127.0.0.1:8088',
                 ],
-                'callback_url' => 'http://127.0.0.1:8088/auth/callback',
+                'callback_url' => 'http://127.0.0.1:8088/sso/callback',
                 'secret' => 'siimut_secret_key_123',
                 'logo_url' => null,
                 'token_expiry' => 3600,
