@@ -58,24 +58,18 @@ class AccessProfileSeeder extends Seeder
         // super_admin => semua admin, tim_mutu => tim_mutu di siimut, unit_kerja => unit_kerja di siimut + admin di apps lain
         $mappings = [
             'super_admin' => [
-                'client-example' => ['admin'],
                 'siimut' => ['super_admin'],
-                'tamasuma' => ['admin'],
                 'incident-report.app' => ['admin'],
-                'pharmacy.app' => ['admin'],
             ],
             'tim_mutu' => [
                 'siimut' => ['tim_mutu'],
             ],
             'unit_kerja' => [
                 'siimut' => ['unit_kerja'],
-                'client-example' => ['admin'],
             ],
             'admin_app' => [
                 'client-example' => ['admin'],
-                'tamasuma' => ['admin'],
                 'incident-report.app' => ['admin'],
-                'pharmacy.app' => ['admin'],
             ],
         ];
 

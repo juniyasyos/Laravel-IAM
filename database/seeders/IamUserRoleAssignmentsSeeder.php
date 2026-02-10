@@ -74,23 +74,19 @@ class IamUserRoleAssignmentsSeeder extends Seeder
 
         foreach ($users as $user) {
             if ($user->nip === '0000.00000') {
-                // Super admin - gets super_admin for SIIMUT and admin for all other apps
+                // Super admin - gets super_admin for SIIMUT and admin for incident report
                 $assignments[] = [
                     'nip' => $user->nip,
                     'roles' => [
-                        'client-example' => ['admin'],
                         'siimut' => ['super_admin'],
-                        'tamasuma' => ['admin'],
                         'incident-report.app' => ['admin'],
-                        'pharmacy.app' => ['admin'],
                     ],
                 ];
             } else {
-                // Regular users - only unit_kerja for SIIMUT and admin for client-example
+                // Regular users - only unit_kerja for SIIMUT
                 $assignments[] = [
                     'nip' => $user->nip,
                     'roles' => [
-                        'client-example' => ['admin'],
                         'siimut' => ['unit_kerja'],
                     ],
                 ];

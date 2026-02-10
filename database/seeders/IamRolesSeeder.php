@@ -55,15 +55,6 @@ class IamRolesSeeder extends Seeder
     private function getRolesData(): array
     {
         return [
-            'client-example' => [
-                [
-                    'slug' => 'admin',
-                    'name' => 'Administrator',
-                    'description' => 'Full administrative access to client example app',
-                    'is_system' => true,
-                ],
-            ],
-
             'siimut' => [
                 [
                     'slug' => 'super_admin',
@@ -83,14 +74,11 @@ class IamRolesSeeder extends Seeder
                     'description' => 'Akses unit kerja untuk input data mutu',
                     'is_system' => false,
                 ],
-            ],
-
-            'tamasuma' => [
                 [
-                    'slug' => 'admin',
-                    'name' => 'Administrator Tamasuma',
-                    'description' => 'Full administrative access to Tamasuma system',
-                    'is_system' => true,
+                    'slug' => 'validator',
+                    'name' => 'Validator PIC',
+                    'description' => 'Akses validator untuk validasi data mutu',
+                    'is_system' => false,
                 ],
             ],
 
@@ -99,15 +87,6 @@ class IamRolesSeeder extends Seeder
                     'slug' => 'admin',
                     'name' => 'Administrator Incident Report',
                     'description' => 'Full administrative access to incident reporting',
-                    'is_system' => true,
-                ],
-            ],
-
-            'pharmacy.app' => [
-                [
-                    'slug' => 'admin',
-                    'name' => 'Administrator Pharmacy',
-                    'description' => 'Full administrative access to pharmacy system',
                     'is_system' => true,
                 ],
             ],
