@@ -10,6 +10,7 @@ use App\Filament\Panel\Resources\Applications\Schemas\ApplicationForm;
 use App\Filament\Panel\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Filament\Panel\Resources\Applications\Tables\ApplicationsTable;
 use App\Domain\Iam\Models\Application;
+use App\Domain\Iam\Services\ApplicationRoleSyncService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

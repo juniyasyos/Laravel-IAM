@@ -55,41 +55,41 @@ class IamRolesSeeder extends Seeder
     private function getRolesData(): array
     {
         return [
-            'siimut' => [
-                [
-                    'slug' => 'super_admin',
-                    'name' => 'Super Admin SIIMUT',
-                    'description' => 'Full administrative access to SIIMUT system',
-                    'is_system' => true,
-                ],
-                [
-                    'slug' => 'tim_mutu',
-                    'name' => 'Tim Mutu',
-                    'description' => 'Tim Mutu dengan akses monitoring dan reporting',
-                    'is_system' => false,
-                ],
-                [
-                    'slug' => 'unit_kerja',
-                    'name' => 'Unit Kerja',
-                    'description' => 'Akses unit kerja untuk input data mutu',
-                    'is_system' => false,
-                ],
-                [
-                    'slug' => 'validator',
-                    'name' => 'Validator PIC',
-                    'description' => 'Akses validator untuk validasi data mutu',
-                    'is_system' => false,
-                ],
-            ],
+            // 'siimut' => [
+            //     [
+            //         'slug' => 'super_admin',
+            //         'name' => 'Super Admin SIIMUT',
+            //         'description' => 'Full administrative access to SIIMUT system',
+            //         'is_system' => true,
+            //     ],
+            //     [
+            //         'slug' => 'tim_mutu',
+            //         'name' => 'Tim Mutu',
+            //         'description' => 'Tim Mutu dengan akses monitoring dan reporting',
+            //         'is_system' => false,
+            //     ],
+            //     [
+            //         'slug' => 'unit_kerja',
+            //         'name' => 'Unit Kerja',
+            //         'description' => 'Akses unit kerja untuk input data mutu',
+            //         'is_system' => false,
+            //     ],
+            //     [
+            //         'slug' => 'validator',
+            //         'name' => 'Validator PIC',
+            //         'description' => 'Akses validator untuk validasi data mutu',
+            //         'is_system' => false,
+            //     ],
+            // ],
 
-            'incident-report.app' => [
-                [
-                    'slug' => 'admin',
-                    'name' => 'Administrator Incident Report',
-                    'description' => 'Full administrative access to incident reporting',
-                    'is_system' => true,
-                ],
-            ],
+            // 'incident-report.app' => [
+            //     [
+            //         'slug' => 'admin',
+            //         'name' => 'Administrator Incident Report',
+            //         'description' => 'Full administrative access to incident reporting',
+            //         'is_system' => true,
+            //     ],
+            // ],
         ];
     }
 }

@@ -56,60 +56,60 @@ class AccessProfileSeeder extends Seeder
 
         // Mapping access profiles to application roles for clarity and maintainability.
         // super_admin => semua admin, tim_mutu => tim_mutu di siimut, unit_kerja => unit_kerja di siimut + admin di apps lain
-        $mappings = [
-            'super_admin' => [
-                'siimut' => ['super_admin'],
-                'incident-report.app' => ['admin'],
-            ],
-            'tim_mutu' => [
-                'siimut' => ['tim_mutu'],
-            ],
-            'unit_kerja' => [
-                'siimut' => ['unit_kerja'],
-            ],
-            'admin_app' => [
-                'client-example' => ['admin'],
-                'incident-report.app' => ['admin'],
-            ],
-        ];
+        // $mappings = [
+        //     'super_admin' => [
+        //         'siimut' => ['super_admin'],
+        //         'incident-report.app' => ['admin'],
+        //     ],
+        //     'tim_mutu' => [
+        //         'siimut' => ['tim_mutu'],
+        //     ],
+        //     'unit_kerja' => [
+        //         'siimut' => ['unit_kerja'],
+        //     ],
+        //     'admin_app' => [
+        //         'client-example' => ['admin'],
+        //         'incident-report.app' => ['admin'],
+        //     ],
+        // ];
 
-        foreach ($mappings as $profileSlug => $apps) {
-            $profile = AccessProfile::where('slug', $profileSlug)->first();
+        // foreach ($mappings as $profileSlug => $apps) {
+        //     $profile = AccessProfile::where('slug', $profileSlug)->first();
 
-            if (! $profile) {
-                $this->command->warn("⚠️  AccessProfile '{$profileSlug}' not found, skipping mapping.");
+        //     if (! $profile) {
+        //         $this->command->warn("⚠️  AccessProfile '{$profileSlug}' not found, skipping mapping.");
 
-                continue;
-            }
+        //         continue;
+        //     }
 
-            $roleIds = [];
+        //     $roleIds = [];
 
-            foreach ($apps as $appKey => $roleSlugs) {
-                $application = Application::where('app_key', $appKey)->first();
+        //     foreach ($apps as $appKey => $roleSlugs) {
+        //         $application = Application::where('app_key', $appKey)->first();
 
-                if (! $application) {
-                    $this->command->warn("⚠️  Application '{$appKey}' not found for mapping, skipping.");
+        //         if (! $application) {
+        //             $this->command->warn("⚠️  Application '{$appKey}' not found for mapping, skipping.");
 
-                    continue;
-                }
+        //             continue;
+        //         }
 
-                foreach ($roleSlugs as $roleSlug) {
-                    $role = ApplicationRole::where('application_id', $application->id)
-                        ->where('slug', $roleSlug)
-                        ->first();
+        //         foreach ($roleSlugs as $roleSlug) {
+        //             $role = ApplicationRole::where('application_id', $application->id)
+        //                 ->where('slug', $roleSlug)
+        //                 ->first();
 
-                    if ($role) {
-                        $roleIds[] = $role->id;
-                    } else {
-                        $this->command->warn("⚠️  Role '{$roleSlug}' for app '{$appKey}' not found while mapping.");
-                    }
-                }
-            }
+        //             if ($role) {
+        //                 $roleIds[] = $role->id;
+        //             } else {
+        //                 $this->command->warn("⚠️  Role '{$roleSlug}' for app '{$appKey}' not found while mapping.");
+        //             }
+        //         }
+        //     }
 
-            if (! empty($roleIds)) {
-                $profile->roles()->syncWithoutDetaching(array_unique($roleIds));
-                $this->command->info("  ✅ Mapped " . count($roleIds) . " role(s) to profile {$profile->name}");
-            }
-        }
+        //     if (! empty($roleIds)) {
+        //         $profile->roles()->syncWithoutDetaching(array_unique($roleIds));
+        //         $this->command->info("  ✅ Mapped " . count($roleIds) . " role(s) to profile {$profile->name}");
+        //     }
+        // }
     }
 }

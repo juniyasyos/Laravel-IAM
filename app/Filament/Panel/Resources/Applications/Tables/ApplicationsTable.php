@@ -3,6 +3,7 @@
 namespace App\Filament\Panel\Resources\Applications\Tables;
 
 use App\Domain\Iam\Models\Application;
+use App\Domain\Iam\Services\ApplicationRoleSyncService;
 use App\Filament\Panel\Resources\Applications\RelationManagers\RolesRelationManager;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -13,6 +14,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -21,6 +23,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Guava\FilamentModalRelationManagers\Actions\RelationManagerAction;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Actions\Modal\Actions\Action as ModalAction;
 
 class ApplicationsTable
 {
@@ -115,6 +118,44 @@ class ApplicationsTable
                         ])->save();
                     })
                     ->requiresConfirmation(),
+                Action::make('syncRoles')
+                    ->label('Sync Roles')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->action(function (Application $record): void {
+                        $service = new ApplicationRoleSyncService();
+                        $result = $service->syncRoles($record);
+
+                        if (!$result['success']) {
+                            Notification::make()
+                                ->title('Sync Failed')
+                                ->body($result['error'])
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $message = $result['message'] . "\n\n";
+                        $comparison = $result['comparison'];
+                        $inSync = count($comparison['in_sync']);
+                        $missing = count($comparison['missing_in_client']);
+                        $extra = count($comparison['extra_in_client']);
+
+                        $message .= "Current Status:\n";
+                        $message .= "✓ In Sync: {$inSync} role(s)\n";
+                        if ($missing > 0) {
+                            $message .= "⚠ Missing in Client: {$missing} role(s)\n";
+                        }
+                        if ($extra > 0) {
+                            $message .= "ℹ Extra in Client: {$extra} role(s)";
+                        }
+
+                        Notification::make()
+                            ->title('Roles Synchronized')
+                            ->body($message)
+                            ->success()
+                            ->send();
+                    }),
                 RelationManagerAction::make()
                     ->label('Manage Roles')
                     ->icon('heroicon-o-shield-check')

@@ -2,12 +2,15 @@
 
 namespace App\Filament\Panel\Resources\Applications\RelationManagers;
 
+use App\Domain\Iam\Services\ApplicationRoleSyncService;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -40,18 +43,13 @@ class RolesRelationManager extends RelationManager
                     ->badge()
                     ->color('gray')
                     ->fontFamily('mono')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->size('sm'),
                 TextColumn::make('description')
                     ->label('Description')
                     ->limit(50)
                     ->wrap()
-                    ->toggleable(),
-                TextColumn::make('users_count')
-                    ->label('Users')
-                    ->counts('users')
-                    ->badge()
-                    ->color('info')
-                    ->sortable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_system')
                     ->label('System')
                     ->boolean()
@@ -59,7 +57,7 @@ class RolesRelationManager extends RelationManager
                     ->falseIcon('heroicon-o-pencil')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->tooltip(fn (bool $state): string => $state ? 'Protected system role' : 'Custom role'),
+                    ->tooltip(fn(bool $state): string => $state ? 'Protected system role' : 'Custom role'),
                 TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('M d, Y')
@@ -74,34 +72,72 @@ class RolesRelationManager extends RelationManager
                     ->falseLabel('Custom roles only'),
             ])
             ->headerActions([
-                CreateAction::make()
-                    ->label('Create Role')
-                    ->modalHeading('Create New Application Role')
-                    ->schema([
-                        TextInput::make('slug')
-                            ->label('Role Slug')
-                            ->required()
-                            ->unique('iam_roles', 'slug', ignoreRecord: true)
-                            ->alphaDash()
-                            ->helperText('Lowercase letters, numbers, dashes and underscores only.'),
-                        TextInput::make('name')
-                            ->label('Role Name')
-                            ->required()
-                            ->maxLength(255),
-                        Textarea::make('description')
-                            ->label('Description')
-                            ->rows(3)
-                            ->maxLength(500)
-                            ->columnSpanFull(),
-                        Toggle::make('is_system')
-                            ->label('System Role')
-                            ->helperText('System roles are protected and cannot be deleted.')
-                            ->default(false),
-                    ])
-                    ->mutateDataUsing(function (array $data): array {
-                        $data['application_id'] = $this->getOwnerRecord()->id;
-                        return $data;
+                Action::make('syncRoles')
+                    ->label('Sync Roles')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->action(function (): void {
+                        $service = new ApplicationRoleSyncService();
+                        $result = $service->syncRoles($this->getOwnerRecord());
+
+                        if (!$result['success']) {
+                            Notification::make()
+                                ->title('Sync Failed')
+                                ->body($result['error'])
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $message = $result['message'] . "\n\n";
+                        $comparison = $result['comparison'];
+                        $inSync = count($comparison['in_sync']);
+                        $missing = count($comparison['missing_in_client']);
+                        $extra = count($comparison['extra_in_client']);
+
+                        $message .= "Current Status:\n";
+                        $message .= "✓ In Sync: {$inSync} role(s)\n";
+                        if ($missing > 0) {
+                            $message .= "⚠ Missing in Client: {$missing} role(s)\n";
+                        }
+                        if ($extra > 0) {
+                            $message .= "ℹ Extra in Client: {$extra} role(s)";
+                        }
+
+                        Notification::make()
+                            ->title('Roles Synchronized')
+                            ->body($message)
+                            ->success()
+                            ->send();
                     }),
+                // CreateAction::make()
+                //     ->label('Create Role')
+                //     ->modalHeading('Create New Application Role')
+                //     ->schema([
+                //         TextInput::make('slug')
+                //             ->label('Role Slug')
+                //             ->required()
+                //             ->unique('iam_roles', 'slug', ignoreRecord: true)
+                //             ->alphaDash()
+                //             ->helperText('Lowercase letters, numbers, dashes and underscores only.'),
+                //         TextInput::make('name')
+                //             ->label('Role Name')
+                //             ->required()
+                //             ->maxLength(255),
+                //         Textarea::make('description')
+                //             ->label('Description')
+                //             ->rows(3)
+                //             ->maxLength(500)
+                //             ->columnSpanFull(),
+                //         Toggle::make('is_system')
+                //             ->label('System Role')
+                //             ->helperText('System roles are protected and cannot be deleted.')
+                //             ->default(false),
+                //     ])
+                //     ->mutateDataUsing(function (array $data): array {
+                //         $data['application_id'] = $this->getOwnerRecord()->id;
+                //         return $data;
+                //     }),
             ])
             ->recordActions([
                 EditAction::make()
@@ -110,8 +146,8 @@ class RolesRelationManager extends RelationManager
                             ->label('Role Slug')
                             ->required()
                             ->alphaDash()
-                            ->disabled(fn ($record) => $record->is_system)
-                            ->helperText(fn ($record) => $record->is_system ? 'System role slug cannot be changed.' : 'Lowercase letters, numbers, dashes and underscores only.'),
+                            ->disabled(fn($record) => $record->is_system)
+                            ->helperText(fn($record) => $record->is_system ? 'System role slug cannot be changed.' : 'Lowercase letters, numbers, dashes and underscores only.'),
                         TextInput::make('name')
                             ->label('Role Name')
                             ->required()
@@ -129,9 +165,9 @@ class RolesRelationManager extends RelationManager
                 DeleteAction::make()
                     ->requiresConfirmation()
                     ->modalHeading('Delete Role')
-                    ->modalDescription(fn ($record) => "Are you sure you want to delete the role '{$record->name}'? This will remove all user assignments for this role.")
-                    ->disabled(fn ($record) => $record->is_system)
-                    ->tooltip(fn ($record) => $record->is_system ? 'System roles cannot be deleted' : null),
+                    ->modalDescription(fn($record) => "Are you sure you want to delete the role '{$record->name}'? This will remove all user assignments for this role.")
+                    ->disabled(fn($record) => $record->is_system)
+                    ->tooltip(fn($record) => $record->is_system ? 'System roles cannot be deleted' : null),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -141,7 +177,7 @@ class RolesRelationManager extends RelationManager
                         ->modalDescription('Are you sure you want to delete the selected roles? System roles will be skipped.')
                         ->before(function ($records) {
                             // Only delete non-system roles
-                            return $records->filter(fn ($record) => !$record->is_system);
+                            return $records->filter(fn($record) => !$record->is_system);
                         }),
                 ]),
             ])
