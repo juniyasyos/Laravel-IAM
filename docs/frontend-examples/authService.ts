@@ -57,8 +57,24 @@ class AuthService {
         try {
             await api.post('/auth/logout');
         } finally {
+            // clear local storage for this tab
             localStorage.removeItem('access_token');
             localStorage.removeItem('user');
+
+            // notify other tabs (storage event + BroadcastChannel)
+            try {
+                localStorage.setItem('iam:logout', Date.now().toString());
+            } catch (e) {
+                // ignore (storage may be unavailable in some environments)
+            }
+
+            try {
+                const bc = new BroadcastChannel('iam-auth');
+                bc.postMessage('logout');
+                bc.close();
+            } catch (e) {
+                // BroadcastChannel might not be supported — that's okay
+            }
         }
     }
 

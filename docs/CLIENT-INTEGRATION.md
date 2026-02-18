@@ -527,6 +527,23 @@ class IAMAuthTest extends TestCase
 
 ---
 
+## Back‑channel logout (server → server) — recommended
+
+If your application receives SSO sessions from IAM, implement a public back‑channel endpoint so IAM can notify the client to invalidate the user's session **without requiring the user to reload other tabs**.
+
+Why: front‑channel redirects only affect the browser tab that follows the logout chain. Back‑channel lets IAM proactively tell clients (server→server) to clear sessions/tokens immediately.
+
+Quick summary (copy‑paste):
+
+- Add a public `POST /iam/backchannel-logout` route in the client.
+- Verify HMAC signature header (default: `IAM-Signature`) using the shared `SSO_SECRET`.
+- Invalidate server session(s) or revoke tokens for the supplied `user.id`.
+- Return 200 OK.
+
+Full implementation examples and tests: see `docs/CLIENT-BACKCHANNEL-LOGOUT.md`.
+
+---
+
 ## Example API Request
 
 ```bash

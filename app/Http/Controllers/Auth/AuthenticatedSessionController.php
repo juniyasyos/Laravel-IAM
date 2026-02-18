@@ -188,6 +188,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // Fire optional back‑channel logout notifications (server->server).
+        if ($user && config('sso.backchannel.enabled', false)) {
+            \App\Jobs\NotifyClientsOfLogout::dispatch($user);
+        }
+
         // Start front‑channel logout chain if any registered client exposes
         // an OP‑initiated logout endpoint (derived from redirect_uris).
         $appsWithLogout = \App\Domain\Iam\Models\Application::enabled()

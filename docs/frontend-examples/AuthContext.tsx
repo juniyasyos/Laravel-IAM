@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
+  // Load user from localStorage on mount + listen for cross-tab logout
   useEffect(() => {
     const storedToken = authService.getStoredToken();
     const storedUser = authService.getStoredUser();
@@ -28,6 +28,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setIsLoading(false);
+
+    // handle logout notifications from other tabs
+    const handleLogoutEvent = () => {
+      authService.clearAuth();
+      setUser(null);
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'iam:logout' || (e.key === 'access_token' && e.newValue === null)) {
+        handleLogoutEvent();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('iam-auth');
+      bc.onmessage = (ev) => {
+        if (ev.data === 'logout') {
+          handleLogoutEvent();
+        }
+      };
+    } catch (err) {
+      /* BroadcastChannel not supported */
+    }
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (bc) bc.close();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
