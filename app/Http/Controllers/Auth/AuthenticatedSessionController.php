@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
@@ -181,6 +182,18 @@ class AuthenticatedSessionController extends Controller
                 'ip_address' => $request->ip(),
                 'session_id' => $request->session()->getId(),
             ]);
+
+            // Revoke refresh tokens (best-effort) and mark logout time so
+            // previously issued access tokens are treated as invalid.
+            $jwtService = app(\App\Services\JWTTokenService::class);
+
+            \App\Domain\Iam\Models\Application::query()
+                ->pluck('app_key')
+                ->each(function (string $appKey) use ($jwtService, $user) {
+                    $jwtService->revokeRefreshToken($user->id, $appKey);
+                });
+
+            Cache::put("user_logout_at:{$user->id}", time());
         }
 
         Auth::guard('web')->logout();

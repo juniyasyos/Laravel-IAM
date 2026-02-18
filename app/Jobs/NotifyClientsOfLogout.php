@@ -54,26 +54,50 @@ class NotifyClientsOfLogout implements ShouldQueue
                 ],
             ];
 
+            // Correlation id for this notify attempt so client & server logs can be matched
+            $requestId = uniqid('iam_req_');
+
             $body = json_encode($payload);
             $signature = hash_hmac('sha256', $body, (string) config('sso.secret'));
             $sigHeader = config('sso.backchannel.signature_header', 'IAM-Signature');
 
+            // Log the outgoing notification (payload preview only)
+            Log::info('backchannel_logout_sending', [
+                'request_id' => $requestId,
+                'uri' => $uri,
+                'app_key' => $app->app_key,
+                'user_id' => $this->user->getKey(),
+                'payload_preview' => substr($body, 0, 300),
+            ]);
+
             try {
-                Http::timeout(3)
+                $response = Http::timeout(3)
                     ->withHeaders([
                         'Accept' => 'application/json',
                         $sigHeader => $signature,
+                        'X-IAM-Request-Id' => $requestId,
                     ])
                     ->post($uri, $payload)
                     ->throw();
 
-                Log::info('backchannel_logout_success', ['uri' => $uri, 'app_key' => $app->app_key, 'user_id' => $this->user->getKey()]);
+                Log::info('backchannel_logout_success', [
+                    'request_id' => $requestId,
+                    'uri' => $uri,
+                    'app_key' => $app->app_key,
+                    'user_id' => $this->user->getKey(),
+                    'status' => $response->status() ?? 200,
+                ]);
             } catch (RequestException $e) {
+                $resp = $e->response();
+
                 Log::warning('backchannel_logout_failed', [
+                    'request_id' => $requestId,
                     'uri' => $uri,
                     'app_key' => $app->app_key,
                     'user_id' => $this->user->getKey(),
                     'error' => $e->getMessage(),
+                    'response_status' => $resp?->status(),
+                    'response_body_preview' => $resp?->body() ? substr($resp->body(), 0, 300) : null,
                 ]);
             }
         }

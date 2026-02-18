@@ -55,7 +55,6 @@ class UserSeeder extends Seeder
                 $nip = trim($data[2] ?? '');
                 $name = trim($data[3] ?? '');
                 $email = trim($data[9] ?? '');
-                $password = trim($data[10] ?? '');
                 $active = trim($data[18] ?? '') === '1' || strtolower(trim($data[18] ?? '')) === 'true';
 
                 // Skip if NIP or name is empty

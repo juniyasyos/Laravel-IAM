@@ -121,3 +121,25 @@ it('resumes SSO redirect after logging in with an app context', function (): voi
 
     $response->assertRedirect(route('sso.redirect', ['app' => $application->app_key], absolute: true));
 });
+
+it('invalidates previously issued tokens after user logout', function (): void {
+    $user = User::factory()->create();
+    $application = Application::factory()->create([
+        'callback_url' => 'http://127.0.0.1:8081/callback',
+    ]);
+
+    /** @var TokenService $tokens */
+    $tokens = app(TokenService::class);
+    $token = $tokens->issue($user, $application);
+
+    // Token valid before logout
+    $this->postJson('/api/sso/verify', ['token' => $token])->assertOk();
+
+    // Perform web logout (should revoke refresh tokens and mark logout time)
+    $this->actingAs($user)->post('/logout')->assertRedirect();
+
+    // Previously issued token must now be rejected
+    $this->postJson('/api/sso/verify', ['token' => $token])
+        ->assertStatus(422)
+        ->assertJsonFragment(['message' => 'Invalid or expired token.']);
+});

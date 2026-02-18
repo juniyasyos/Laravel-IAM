@@ -16,7 +16,7 @@ class SsoLogoutChainController extends Controller
      */
     public function __invoke(Request $request)
     {
-        $index = max(0, (int) $request->query('index', 0));  
+        $index = max(0, (int) $request->query('index', 0));
 
         $apps = Application::enabled()
             ->get()
@@ -39,7 +39,16 @@ class SsoLogoutChainController extends Controller
         $next = route('sso.logout.chain', ['index' => $index + 1], true);
 
         $separator = str_contains($logoutUri, '?') ? '&' : '?';
-        $target = $logoutUri . $separator . 'post_logout_redirect=' . urlencode($next);
+        $requestId = uniqid('sso_chain_');
+        $target = $logoutUri . $separator . 'post_logout_redirect=' . urlencode($next) . '&request_id=' . urlencode($requestId);
+
+        // Log the redirect so we can correlate browser front-channel logout activity
+        \Illuminate\Support\Facades\Log::info('sso.logout_chain_redirect', [
+            'index' => $index,
+            'app_key' => $app->app_key ?? null,
+            'target' => $target,
+            'request_id' => $requestId,
+        ]);
 
         // Use away() because target is an external URL (client app)
         return redirect()->away($target);

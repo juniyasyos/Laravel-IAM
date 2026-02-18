@@ -6,6 +6,7 @@ use App\Domain\Iam\DataTransferObjects\TokenClaims;
 use App\Models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Support\Facades\Cache;
 
 class TokenBuilder
 {
@@ -100,6 +101,13 @@ class TokenBuilder
 
         if ($claims->isExpired()) {
             throw new \Exception('Token has expired.');
+        }
+
+        // Reject tokens issued before a recorded user logout timestamp.
+        $logoutAt = Cache::get("user_logout_at:{$claims->userId}");
+
+        if ($logoutAt !== null && $claims->issuedAt <= $logoutAt) {
+            throw new \Exception('Token has been revoked due to user logout.');
         }
 
         return $claims;
