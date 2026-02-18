@@ -16,6 +16,14 @@ class Application extends Model
     use SoftDeletes;
 
     /**
+     * Map factory to Database\Factories\ApplicationFactory (non-namespaced).
+     */
+    protected static function newFactory(): \Illuminate\Database\Eloquent\Factories\Factory
+    {
+        return \Database\Factories\ApplicationFactory::new();
+    }
+
+    /**
      * The table associated with the model.
      */
     protected $table = 'applications';
@@ -106,6 +114,42 @@ class Application extends Model
         }
 
         return in_array($uri, $this->redirect_uris, true);
+    }
+
+    /**
+     * Derive the client's OP‑initiated logout URI.
+     *
+     * - If the client uses the `laravel-iam-client` package, it exposes
+     *   a public `/iam/logout` endpoint. We derive that automatically
+     *   from the application's first `redirect_uris` entry or from the
+     *   `callback_url` when available.
+     */
+    public function getLogoutUriAttribute(): ?string
+    {
+        // Prefer explicit redirect URIs (first entry)
+        if (! empty($this->redirect_uris) && is_array($this->redirect_uris) && count($this->redirect_uris) > 0) {
+            $base = rtrim($this->redirect_uris[0], '/');
+            return $base . '/iam/logout';
+        }
+
+        // Fallback to callback_url host
+        if (! empty($this->callback_url)) {
+            $parts = parse_url($this->callback_url);
+
+            if (! isset($parts['scheme']) || ! isset($parts['host'])) {
+                return null;
+            }
+
+            $base = $parts['scheme'] . '://' . $parts['host'];
+
+            if (! empty($parts['port'])) {
+                $base .= ':' . $parts['port'];
+            }
+
+            return rtrim($base, '/') . '/iam/logout';
+        }
+
+        return null;
     }
 
     /**

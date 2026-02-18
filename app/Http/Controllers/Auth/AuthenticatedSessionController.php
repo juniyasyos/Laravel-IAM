@@ -188,6 +188,17 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // Start front‑channel logout chain if any registered client exposes
+        // an OP‑initiated logout endpoint (derived from redirect_uris).
+        $appsWithLogout = \App\Domain\Iam\Models\Application::enabled()
+            ->get()
+            ->filter(fn($a) => ! empty($a->logout_uri))
+            ->values();
+
+        if ($appsWithLogout->isNotEmpty()) {
+            return redirect()->route('sso.logout.chain', ['index' => 0]);
+        }
+
         return redirect('/');
     }
 }

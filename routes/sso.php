@@ -18,6 +18,10 @@ return [
         // OAuth2-like SSO Authorization Endpoint (new IAM)
         Route::middleware('auth')->get('/oauth/authorize', [SsoTokenController::class, 'authorize'])
             ->name('oauth.authorize');
+
+        // Front‑channel logout chain (public) — sequentially calls client `/iam/logout`
+        Route::get('/sso/logout/chain', \App\Http\Controllers\Sso\SsoLogoutChainController::class)
+            ->name('sso.logout.chain');
     },
     'api' => function (): void {
         Route::middleware(SsoLoggingMiddleware::class)

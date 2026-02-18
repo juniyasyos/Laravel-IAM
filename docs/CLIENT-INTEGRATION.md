@@ -168,6 +168,12 @@ class IAMAuthController extends Controller
         return redirect('/login');
     }
 
+    // Note: jika aplikasi menggunakan package `juniyasyos/iam-client`, package
+    // sudah menyediakan `GET /iam/logout` sehingga method ini bersifat fallback saja.
+    // Catatan penting: jika client memakai package, **tidak perlu** menambahkan
+    // `logout_uri` secara manual di registrasi aplikasi IAM — server akan otomatis
+    // menurunkan endpoint `/iam/logout` dari `redirect_uris`.
+
     /**
      * Get user info from IAM.
      */

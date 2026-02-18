@@ -11,6 +11,13 @@ use Illuminate\Support\Str;
 class ApplicationFactory extends Factory
 {
     /**
+     * The model that this factory creates.
+     *
+     * @var class-string
+     */
+    protected $model = \App\Domain\Iam\Models\Application::class;
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>

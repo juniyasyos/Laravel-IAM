@@ -40,26 +40,22 @@ Ketika user logout dari aplikasi IAM, session di aplikasi client (seperti siimut
 ## Implementasi yang Dipilih: Opsi 2 (Front-Channel Logout)
 
 ### Perubahan di IAM Server
-1. **Database Migration**: Tambah field `logout_uri` di tabel `applications`.
-2. **Model Application**: Tambah accessor untuk `logout_uri`.
+1. **(Default) Derive client logout endpoint**: IAM akan *menurunkan* `logout_uri` dari data aplikasi yang sudah ada (ambil `redirect_uris[0]` atau `callback_url` lalu tambahkan `/iam/logout`). Jika client memakai package `juniyasyos/iam-client`, tidak perlu menambahkan `logout_uri` manual. 
+2. **Model Application**: Tambah accessor `logout_uri` yang mengembalikan derived `/iam/logout` untuk aplikasi yang memiliki `redirect_uris`/`callback_url`.
 3. **AuthenticatedSessionController::destroy()**: 
    - Invalidate session seperti biasa.
-   - Loop melalui registered applications.
-   - Redirect ke `logout_uri` masing-masing client (menggunakan iframe atau sequential).
-4. **Application Registration**: Pastikan client mendaftarkan `logout_uri` saat register.
+   - Mulai front‑channel logout chain — sequential redirect ke tiap client `/iam/logout` (menggunakan `post_logout_redirect` untuk melanjutkan chain).
+4. **(Optional)** Jika organisasi ingin menyimpan `logout_uri` tersendiri, migration/kolom baru tetap dapat ditambahkan — tapi bukan lagi persyaratan bila client menggunakan paket.
 
 ### Perubahan di Client Apps
-1. **Tambah Endpoint**: `/iam/logout` (public, tidak perlu auth).
-2. **Fungsi Endpoint**:
-   - Clear session lokal (`iam_access_token`, `iam_user`, dll).
-   - Optional: Revoke token di IAM.
-   - Redirect ke login page client.
-3. **Contoh Implementasi** (Laravel):
+1. Jika aplikasi client menggunakan package `juniyasyos/iam-client` (lihat folder `laravel-iam-client`), plugin sudah menyediakan `GET /iam/logout` (public) yang bertugas membersihkan session IAM (`iam_access_token`, `iam_refresh_token`, `iam_expires_at`, `iam_user`) dan melakukan redirect ke halaman login. Pastikan package routes ter-load di aplikasi client dan `logout_uri` client didaftarkan di IAM.
+2. Jika aplikasi tidak memakai package, tambahkan endpoint publik `/iam/logout` seperti pada fallback di bawah.
+3. Contoh Implementasi (Laravel, fallback manual):
    ```php
    Route::get('/iam/logout', [AuthController::class, 'iamLogout']);
    
    public function iamLogout() {
-       session()->forget(['iam_access_token', 'iam_refresh_token', 'iam_user']);
+       session()->forget(['iam_access_token', 'iam_refresh_token', 'iam_expires_at', 'iam_user']);
        return redirect('/login');
    }
    ```
