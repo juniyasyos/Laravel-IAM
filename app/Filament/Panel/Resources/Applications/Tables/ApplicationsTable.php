@@ -4,6 +4,7 @@ namespace App\Filament\Panel\Resources\Applications\Tables;
 
 use App\Domain\Iam\Models\Application;
 use App\Domain\Iam\Services\ApplicationRoleSyncService;
+use App\Jobs\SyncApplicationUsers;
 use App\Filament\Panel\Resources\Applications\RelationManagers\RolesRelationManager;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -153,6 +154,17 @@ class ApplicationsTable
                         Notification::make()
                             ->title('Roles Synchronized')
                             ->body($message)
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('syncUsers')
+                    ->label('Sync Users')
+                    ->icon('heroicon-o-user-group')
+                    ->color('primary')
+                    ->action(function (Application $record): void {
+                        SyncApplicationUsers::dispatch($record);
+                        Notification::make()
+                            ->title('User sync job queued')
                             ->success()
                             ->send();
                     }),
