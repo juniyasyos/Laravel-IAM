@@ -28,21 +28,21 @@ class ApplicationsSeeder extends Seeder
                 'token_expiry' => 3600,
                 'created_by' => $admin?->id,
             ],
-            [
-                'app_key' => 'incident-report.app',
-                'name' => 'Incident Reporting System',
-                'description' => 'Sistem pelaporan insiden keselamatan pasien',
-                'enabled' => true,
-                'redirect_uris' => [
-                    'http://localhost:3002/auth/callback',
-                    'https://incident.rs.id/auth/callback',
-                ],
-                'callback_url' => 'https://incident.rs.id/auth/callback',
-                'secret' => 'incident_secret_key_789',
-                'logo_url' => null,
-                'token_expiry' => 7200,
-                'created_by' => $admin?->id,
-            ],
+            // [
+            //     'app_key' => 'incident-report.app',
+            //     'name' => 'Incident Reporting System',
+            //     'description' => 'Sistem pelaporan insiden keselamatan pasien',
+            //     'enabled' => true,
+            //     'redirect_uris' => [
+            //         'http://localhost:3002/auth/callback',
+            //         'https://incident.rs.id/auth/callback',
+            //     ],
+            //     'callback_url' => 'https://incident.rs.id/auth/callback',
+            //     'secret' => 'incident_secret_key_789',
+            //     'logo_url' => null,
+            //     'token_expiry' => 7200,
+            //     'created_by' => $admin?->id,
+            // ],
         ];
 
         foreach ($applications as $data) {

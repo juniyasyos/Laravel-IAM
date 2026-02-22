@@ -34,6 +34,8 @@ class NotifyClientsOfLogout implements ShouldQueue
 
         $timestamp = Carbon::now()->toIso8601String();
 
+        $method = config('iam.backchannel_method', 'jwt');
+
         foreach ($apps as $app) {
             $uri = $app->backchannel_logout_uri;
 
@@ -57,9 +59,22 @@ class NotifyClientsOfLogout implements ShouldQueue
             // Correlation id for this notify attempt so client & server logs can be matched
             $requestId = uniqid('iam_req_');
 
-            $body = json_encode($payload);
-            $signature = hash_hmac('sha256', $body, (string) config('sso.secret'));
-            $sigHeader = config('sso.backchannel.signature_header', 'IAM-Signature');
+            // prepare HTTP client builder
+            $client = Http::timeout(3)->withHeaders([
+                'Accept' => 'application/json',
+                'X-IAM-Request-Id' => $requestId,
+            ]);
+
+            if ($method === 'jwt') {
+                $token = app(\App\Services\JWTTokenService::class)
+                    ->generateBackchannelToken($app);
+                $client = $client->withToken($token);
+            } else {
+                $body = json_encode($payload);
+                $signature = hash_hmac('sha256', $body, (string) config('sso.secret'));
+                $sigHeader = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $client = $client->withHeaders([$sigHeader => $signature]);
+            }
 
             // Log the outgoing notification (payload preview only)
             Log::info('backchannel_logout_sending', [
@@ -67,18 +82,11 @@ class NotifyClientsOfLogout implements ShouldQueue
                 'uri' => $uri,
                 'app_key' => $app->app_key,
                 'user_id' => $this->user->getKey(),
-                'payload_preview' => substr($body, 0, 300),
+                'payload_preview' => substr(json_encode($payload), 0, 300),
             ]);
 
             try {
-                $response = Http::timeout(3)
-                    ->withHeaders([
-                        'Accept' => 'application/json',
-                        $sigHeader => $signature,
-                        'X-IAM-Request-Id' => $requestId,
-                    ])
-                    ->post($uri, $payload)
-                    ->throw();
+                $response = $client->post($uri, $payload)->throw();
 
                 Log::info('backchannel_logout_success', [
                     'request_id' => $requestId,

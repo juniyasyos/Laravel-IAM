@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use STS\FilamentImpersonate\Actions\Impersonate as ImpersonateTableAction;
 use App\Jobs\SyncApplicationUsers;
 use App\Domain\Iam\Models\Application;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 
 class UsersTable
@@ -202,32 +203,6 @@ class UsersTable
 
                     EditAction::make()
                         ->label('Edit'),
-                    Action::make('syncFromApps')
-                        ->label('Sync from client')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('secondary')
-                        ->action(function (User $record): void {
-                            $appKeys = $record->accessibleApps();
-                            if (empty($appKeys)) {
-                                Notification::make()
-                                    ->title('No applications to sync')
-                                    ->warning()
-                                    ->send();
-                                return;
-                            }
-
-                            $apps = Application::whereIn('app_key', $appKeys)->get();
-                            foreach ($apps as $app) {
-                                SyncApplicationUsers::dispatch($app);
-                            }
-
-                            Notification::make()
-                                ->title('User sync jobs queued')
-                                ->success()
-                                ->send();
-                        }),
-                        ->label('Edit')
-                        ->icon('heroicon-m-pencil-square'),
                 ]),
             ])
             ->toolbarActions([

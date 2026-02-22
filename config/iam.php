@@ -40,6 +40,38 @@ return [
     'signing_key' => env('IAM_SIGNING_KEY', env('APP_KEY')),
 
     /*
+    |------------------------------------------------------------------------
+    | Back‑channel authentication method
+    |------------------------------------------------------------------------
+    |
+    | Mechanism used when IAM sends server‑to‑server requests (logout
+    | notifications, user/role sync, etc).  Supported values:
+    |
+    | * `jwt` – send a short‑lived JWT in the Authorization header (preferred).
+    | * `hmac` – legacy mode; compute HMAC over body using `sso.secret`.
+    |
+    | The corresponding client must be configured to expect the same method.
+    |
+    */
+
+    /*
+    |------------------------------------------------------------------------
+    | Back-channel security toggle
+    |------------------------------------------------------------------------
+    |
+    | When set to false the `iam.backchannel.verify` middleware will be
+    | bypassed entirely.  This is useful during early development where
+    | you just want the sync route to exist without worrying about valid
+    | signatures or tokens.  The route itself remains under the
+    | `sync_users` flag.
+    |
+    */
+    'backchannel_verify' => env('IAM_BACKCHANNEL_VERIFY', true),
+
+    'backchannel_method' => env('IAM_BACKCHANNEL_METHOD', 'hmac'),
+
+
+    /*
     |--------------------------------------------------------------------------
     | JWT Algorithm
     |--------------------------------------------------------------------------

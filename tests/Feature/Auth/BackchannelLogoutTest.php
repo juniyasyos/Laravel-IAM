@@ -5,7 +5,11 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    config(['sso.backchannel.enabled' => true]);
+    config([
+        'sso.backchannel.enabled' => true,
+        'iam.backchannel_method' => 'hmac',
+        'iam.backchannel_verify' => true,
+    ]);
 });
 
 it('sends_backchannel_logout_notifications_to_registered_clients', function () {
@@ -20,9 +24,10 @@ it('sends_backchannel_logout_notifications_to_registered_clients', function () {
         ->assertRedirect();
 
     Http::assertSent(function ($request) use ($user) {
-        return $request->url() === 'http://client1.test/iam/backchannel-logout'
-            && $request['event'] === 'logout'
-            && ($request['user']['id'] ?? null) === $user->getKey()
-            && ! empty($request->header(config('sso.backchannel.signature_header')));
+        $urlOK = $request->url() === 'http://client1.test/iam/backchannel-logout';
+        $eventOK = $request['event'] === 'logout' && ($request['user']['id'] ?? null) === $user->getKey();
+
+        $header = config('sso.backchannel.signature_header');
+        return $urlOK && $eventOK && ! empty($request->header($header));
     });
 });

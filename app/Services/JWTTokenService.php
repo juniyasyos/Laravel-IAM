@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use  App\Domain\Iam\Models\Application;;
+
 use App\Models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -42,6 +43,28 @@ class JWTTokenService
             'app_key' => $application->app_key,
             'roles' => $this->getUserRolesForApplication($user, $application),
             'type' => 'access',
+        ];
+
+        return JWT::encode($payload, $this->secretKey, $this->algorithm);
+    }
+
+    /**
+     * Generate a short-lived token suitable for back‑channel requests such
+     * as role/user synchronisation.  The token is deliberately sparse and
+     * is only used by other services to prove the request originated from
+     * the IAM server.
+     */
+    public function generateBackchannelToken(Application $application): string
+    {
+        $now = time();
+        $expiry = $now + 300; // five minutes
+
+        $payload = [
+            'iss' => $this->issuer,
+            'iat' => $now,
+            'exp' => $expiry,
+            'app_key' => $application->app_key,
+            'type' => 'backchannel',
         ];
 
         return JWT::encode($payload, $this->secretKey, $this->algorithm);
@@ -93,7 +116,7 @@ class JWTTokenService
         try {
             return JWT::decode($token, new Key($this->secretKey, $this->algorithm));
         } catch (\Exception $e) {
-            throw new \Exception('Invalid or expired token: '.$e->getMessage());
+            throw new \Exception('Invalid or expired token: ' . $e->getMessage());
         }
     }
 

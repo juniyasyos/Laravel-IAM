@@ -22,7 +22,12 @@ Route::post('/iam/backchannel-logout', [IamBackchannelController::class, 'backch
 
 Endpoint ini **tidak** memakai auth middleware (IAM akan memanggilnya).
 
-## 2) Middleware — verifikasi signature (disarankan)
+## 2) Middleware — verifikasi signature/token (disarankan)
+
+Paket klien mendukung dua metode otentikasi back‑channel: `hmac` (legacy)
+atau `jwt` (preferable).  Pilihan dikonfigurasi via `IAM_BACKCHANNEL_METHOD`.
+
+### HMAC (legacy)
 
 Buat middleware `VerifyIamBackchannelSignature` di `app/Http/Middleware`:
 
@@ -49,6 +54,46 @@ class VerifyIamBackchannelSignature
     }
 }
 ```
+
+### JWT (recommended)
+
+Alternatifnya, gunakan JWT yang ditandatangani oleh server IAM.  Middleware
+bisa memanfaatkan `
+Juniyasyos\IamClient\Support\TokenValidator::decode()` (atau paket JWT apa pun) untuk
+memverifikasi token.
+
+```php
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Juniyasyos\IamClient\Support\TokenValidator;
+
+class VerifyIamBackchannelJwt
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $token = $request->bearerToken();
+        if (! $token) {
+            return response()->json(['message' => 'no token'], 403);
+        }
+
+        try {
+            $decoded = TokenValidator::decode($token);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'invalid token'], 403);
+        }
+
+        // optional: check $decoded->type === 'backchannel'
+
+        return $next($request);
+    }
+}
+```
+
+Daftarkan salah satu middleware ini di `app/Http/Kernel.php` dan gunakan pada
+route bila diperlukan.  Pastikan `IAM_BACKCHANNEL_METHOD` cocok dengan cara
+manual Anda mengimplementasikan middleware di atas.
 
 Daftarkan middleware ini di `app/Http/Kernel.php` (routeMiddleware) lalu gunakan pada route jika mau.
 

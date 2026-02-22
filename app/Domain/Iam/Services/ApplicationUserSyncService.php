@@ -8,6 +8,7 @@ use App\Domain\Iam\Services\UserRoleAssignmentService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Services\JWTTokenService;
 
 class ApplicationUserSyncService
 {
@@ -118,7 +119,11 @@ class ApplicationUserSyncService
                 'sync_url' => $syncUrl,
             ]);
 
-            $response = Http::timeout(10)->get($syncUrl);
+            // authentication: attach a short-lived JWT so the client can verify
+            $token = app(JWTTokenService::class)->generateBackchannelToken($application);
+            $response = Http::withToken($token)
+                ->timeout(10)
+                ->get($syncUrl);
 
             if (! $response->successful()) {
                 return [

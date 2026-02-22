@@ -6,6 +6,7 @@ use App\Domain\Iam\Models\Application;
 use App\Domain\Iam\Models\ApplicationRole;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\JWTTokenService;
 
 class ApplicationRoleSyncService
 {
@@ -94,8 +95,21 @@ class ApplicationRoleSyncService
                 'sync_url' => $syncUrl,
             ]);
 
-            $response = Http::timeout(10)
-                ->get($syncUrl);
+            // authenticate the request according to configured backchannel method
+            if (config('iam.backchannel_method', 'jwt') === 'jwt') {
+                $token = app(JWTTokenService::class)->generateBackchannelToken($application);
+                $response = Http::withToken($token)
+                    ->timeout(10)
+                    ->get($syncUrl);
+            } else {
+                $secret = config('sso.secret', env('SSO_SECRET', ''));
+                $signature = hash_hmac('sha256', '', $secret);
+                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+
+                $response = Http::withHeaders([$header => $signature])
+                    ->timeout(10)
+                    ->get($syncUrl);
+            }
 
             if (!$response->successful()) {
                 return [
