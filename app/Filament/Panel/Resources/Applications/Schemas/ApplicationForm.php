@@ -86,11 +86,10 @@ class ApplicationForm
                         Section::make('Integration & Routing')
                             ->description('Konfigurasi endpoint yang digunakan saat proses login / callback.')
                             ->schema([
-                                TagsInput::make('redirect_uris')
+                                TextInput::make('redirect_uris')
                                     ->label('Redirect URIs')
                                     ->helperText('Opsional. Tekan Enter untuk menambah banyak redirect URI. Wajib HTTPS untuk produksi.')
                                     ->placeholder('https://app.example.com/oauth/callback')
-                                    ->nestedRecursiveRules(['url'])
                                     ->columnSpanFull(),
 
                                 TextInput::make('callback_url')

@@ -119,66 +119,6 @@ class ApplicationsTable
                         ])->save();
                     })
                     ->requiresConfirmation(),
-                Action::make('syncRoles')
-                    ->label('Sync Roles')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('info')
-                    ->action(function (Application $record): void {
-                        $service = new ApplicationRoleSyncService();
-                        $result = $service->syncRoles($record);
-
-                        if (!$result['success']) {
-                            Notification::make()
-                                ->title('Sync Failed')
-                                ->body($result['error'])
-                                ->danger()
-                                ->send();
-                            return;
-                        }
-
-                        $message = $result['message'] . "\n\n";
-                        $comparison = $result['comparison'];
-                        $inSync = count($comparison['in_sync']);
-                        $missing = count($comparison['missing_in_client']);
-                        $extra = count($comparison['extra_in_client']);
-
-                        $message .= "Current Status:\n";
-                        $message .= "✓ In Sync: {$inSync} role(s)\n";
-                        if ($missing > 0) {
-                            $message .= "⚠ Missing in Client: {$missing} role(s)\n";
-                        }
-                        if ($extra > 0) {
-                            $message .= "ℹ Extra in Client: {$extra} role(s)";
-                        }
-
-                        Notification::make()
-                            ->title('Roles Synchronized')
-                            ->body($message)
-                            ->success()
-                            ->send();
-                    }),
-                Action::make('syncUsers')
-                    ->label('Sync Users')
-                    ->icon('heroicon-o-user-group')
-                    ->color('primary')
-                    ->action(function (Application $record): void {
-                        // gather all access profiles that reference roles from this
-                        // specific application and send their ids to the job. this
-                        // keeps compatibility with the previous behaviour while
-                        // still using the new profile-based mechanism.
-                        $profileIds = \App\Domain\Iam\Models\AccessProfile::query()
-                            ->whereHas('roles', function ($q) use ($record) {
-                                $q->where('application_id', $record->id);
-                            })
-                            ->pluck('id')
-                            ->toArray();
-
-                        SyncApplicationUsers::dispatch($record, $profileIds);
-                        Notification::make()
-                            ->title('User sync job queued')
-                            ->success()
-                            ->send();
-                    }),
                 RelationManagerAction::make()
                     ->label('Manage Roles')
                     ->icon('heroicon-o-shield-check')
@@ -188,6 +128,67 @@ class ApplicationsTable
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
+                    Action::make('syncRoles')
+                        ->label('Sync Roles')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('info')
+                        ->action(function (Application $record): void {
+                            $service = new ApplicationRoleSyncService();
+                            $result = $service->syncRoles($record);
+
+                            if (!$result['success']) {
+                                Notification::make()
+                                    ->title('Sync Failed')
+                                    ->body($result['error'])
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $message = $result['message'] . "\n\n";
+                            $comparison = $result['comparison'];
+                            $inSync = count($comparison['in_sync']);
+                            $missing = count($comparison['missing_in_client']);
+                            $extra = count($comparison['extra_in_client']);
+
+                            $message .= "Current Status:\n";
+                            $message .= "✓ In Sync: {$inSync} role(s)\n";
+                            if ($missing > 0) {
+                                $message .= "⚠ Missing in Client: {$missing} role(s)\n";
+                            }
+                            if ($extra > 0) {
+                                $message .= "ℹ Extra in Client: {$extra} role(s)";
+                            }
+
+                            Notification::make()
+                                ->title('Roles Synchronized')
+                                ->body($message)
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('syncUsers')
+                        ->label('Sync Users')
+                        ->icon('heroicon-o-user-group')
+                        ->color('primary')
+                        ->action(function (Application $record): void {
+                            // gather all access profiles that reference roles from this
+                            // specific application and send their ids to the job. this
+                            // keeps compatibility with the previous behaviour while
+                            // still using the new profile-based mechanism.
+                            $profileIds = \App\Domain\Iam\Models\AccessProfile::query()
+                                ->whereHas('roles', function ($q) use ($record) {
+                                    $q->where('application_id', $record->id);
+                                })
+                                ->pluck('id')
+                                ->toArray();
+
+                            SyncApplicationUsers::dispatch($record, $profileIds);
+                            Notification::make()
+                                ->title('User sync job queued')
+                                ->success()
+                                ->send();
+                        }),
+
                 ])
             ])
             ->toolbarActions([

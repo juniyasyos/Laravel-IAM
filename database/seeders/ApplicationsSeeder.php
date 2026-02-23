@@ -20,9 +20,9 @@ class ApplicationsSeeder extends Seeder
                 'description' => 'Aplikasi manajemen indikator kinerja mutu rumah sakit dan unit kerja',
                 'enabled' => true,
                 'redirect_uris' => [
-                    'http://127.0.0.1:8000',
+                    'http://127.0.0.1:8088',
                 ],
-                'callback_url' => 'http://127.0.0.1:8000/sso/callback',
+                'callback_url' => 'http://127.0.0.1:8088/sso/callback',
                 'secret' => 'siimut_secret_key_123',
                 'logo_url' => null,
                 'token_expiry' => 3600,

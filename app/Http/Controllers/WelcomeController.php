@@ -128,7 +128,7 @@ class WelcomeController extends Controller
         }
 
         // Fallback to SSO endpoint
-        return route('sso.authorize', ['app_key' => $app->app_key]);
+        return route('oauth.authorize', ['app_key' => $app->app_key]);
     }
 
     /**

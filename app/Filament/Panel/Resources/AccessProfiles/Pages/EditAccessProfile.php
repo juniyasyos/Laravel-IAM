@@ -3,7 +3,6 @@
 namespace App\Filament\Panel\Resources\AccessProfiles\Pages;
 
 use App\Filament\Panel\Resources\AccessProfiles\AccessProfileResource;
-use App\Filament\Panel\Resources\AccessProfiles\RelationManagers\RolesRelationManager;
 use App\Filament\Panel\Resources\AccessProfiles\RelationManagers\UsersRelationManager;
 use Filament\Actions\DeleteAction;
 use Guava\FilamentModalRelationManagers\Actions\RelationManagerAction;
@@ -16,12 +15,12 @@ class EditAccessProfile extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // RelationManagerAction::make()
+            //     ->label('Manage Roles')
+            //     ->record($this->getRecord())
+            //     ->slideOver()
+            //     ->relationManager(RolesRelationManager::make()),
             RelationManagerAction::make()
-                ->label('Manage Roles')
-                ->record($this->getRecord())
-                ->slideOver()
-                ->relationManager(RolesRelationManager::make()),
-                RelationManagerAction::make()
                 ->label('Manage Users')
                 ->slideOver()
                 ->record($this->getRecord())

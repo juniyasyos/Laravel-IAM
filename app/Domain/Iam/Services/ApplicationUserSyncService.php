@@ -168,6 +168,16 @@ class ApplicationUserSyncService
             }
 
             $clientData = $response->json();
+
+            // sanity check: client should echo the app_key we requested.
+            if (isset($clientData['app_key']) && $clientData['app_key'] !== $application->app_key) {
+                Log::warning('Sync response app_key mismatch', [
+                    'expected' => $application->app_key,
+                    'received' => $clientData['app_key'],
+                    'sync_url' => $syncUrl,
+                ]);
+            }
+
             $clientUsers = $clientData['users'] ?? [];
 
             return [

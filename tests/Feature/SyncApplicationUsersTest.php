@@ -1,9 +1,13 @@
 <?php
 
 use App\Domain\Iam\Models\Application;
+use App\Domain\Iam\Models\ApplicationRole;
+use App\Domain\Iam\Models\AccessProfile;
 use App\Jobs\SyncApplicationUsers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use App\Models\User;
+use App\Domain\Iam\Services\ApplicationUserSyncService;
 
 beforeEach(function () {
     // default to legacy hmac behaviour and keep verification enabled
@@ -59,20 +63,20 @@ it('syncs a client user by attaching the appropriate access profiles', function 
     ]);
 
     // create two application roles and a pair of profiles
-    $role1 = App\\Domain\\Iam\\Models\\ApplicationRole::create([
+    $role1 = ApplicationRole::create([
         'application_id' => $app->id,
         'slug' => 'alpha',
         'name' => 'Alpha',
     ]);
-    $role2 = App\\Domain\\Iam\\Models\\ApplicationRole::create([
+    $role2 = ApplicationRole::create([
         'application_id' => $app->id,
         'slug' => 'beta',
         'name' => 'Beta',
     ]);
 
-    $profile1 = App\Domain\Iam\Models\AccessProfile::factory()->create();
+    $profile1 = AccessProfile::factory()->create();
     $profile1->roles()->attach($role1->id);
-    $profile2 = App\Domain\Iam\Models\AccessProfile::factory()->create();
+    $profile2 = AccessProfile::factory()->create();
     $profile2->roles()->attach($role2->id);
 
     // fake the client returning a single user with the 'alpha' role only
@@ -87,7 +91,7 @@ it('syncs a client user by attaching the appropriate access profiles', function 
     $service = new App\Domain\Iam\Services\ApplicationUserSyncService();
     $result = $service->syncUsers($app);
 
-    $user = App\Models\User::where('nip', '111')->first();
+    $user = User::where('nip', '111')->first();
     expect($user)->not->toBeNull();
 
     // user should be linked only to profile1 and not profile2
@@ -109,20 +113,20 @@ it('job respects chosen bundles and ignores the rest', function () {
         'app_key' => 'klm',
     ]);
 
-    $roleA = App\Domain\Iam\Models\ApplicationRole::create([
+    $roleA = ApplicationRole::create([
         'application_id' => $app->id,
         'slug' => 'a',
         'name' => 'A',
     ]);
-    $roleB = App\Domain\Iam\Models\ApplicationRole::create([
+    $roleB = ApplicationRole::create([
         'application_id' => $app->id,
         'slug' => 'b',
         'name' => 'B',
     ]);
 
-    $profileA = App\Domain\Iam\Models\AccessProfile::factory()->create();
+    $profileA = AccessProfile::factory()->create();
     $profileA->roles()->attach($roleA->id);
-    $profileB = App\Domain\Iam\Models\AccessProfile::factory()->create();
+    $profileB = AccessProfile::factory()->create();
     $profileB->roles()->attach($roleB->id);
 
     Http::fake([
@@ -133,7 +137,7 @@ it('job respects chosen bundles and ignores the rest', function () {
         ], 200),
     ]);
 
-    $job = new App\Jobs\SyncApplicationUsers([
+    $job = new SyncApplicationUsers([
         $profileA->id,
     ]);
     $job->handle();
@@ -157,12 +161,12 @@ it('dispatching with an application restricts sync to that app', function () {
         'app_key' => 'two',
     ]);
 
-    $role1 = App\Domain\Iam\Models\ApplicationRole::create([
+    $role1 = ApplicationRole::create([
         'application_id' => $app1->id,
         'slug' => 'x',
         'name' => 'X',
     ]);
-    $role2 = App\Domain\Iam\Models\ApplicationRole::create([
+    $role2 = ApplicationRole::create([
         'application_id' => $app2->id,
         'slug' => 'y',
         'name' => 'Y',
@@ -183,7 +187,7 @@ it('dispatching with an application restricts sync to that app', function () {
 
     SyncApplicationUsers::dispatch($app1, [$profile1->id, $profile2->id]);
 
-    $user = App\Models\User::where('nip', '444')->first();
+    $user = User::where('nip', '444')->first();
     expect($user)->not->toBeNull();
 
     // only profile1 attached, because job limited to app1
@@ -234,6 +238,27 @@ it('does not remove existing bundles when client roles shrink', function () {
         ->toEqualCanonicalizing([$profile1->id, $profile2->id]);
 });
 
+it('includes users with a direct role when computing iam_users (no SQL ambiguity)', function () {
+    $app = Application::factory()->create([
+        'callback_url' => 'http://client.test',
+        'app_key' => 'xyz',
+    ]);
+
+    $role = App\Domain\Iam\Models\ApplicationRole::create([
+        'application_id' => $app->id,
+        'slug' => 'direct',
+        'name' => 'Direct Role',
+    ]);
+
+    $user = App\Models\User::factory()->create(['nip' => '999']);
+    $user->applicationRoles()->attach($role->id, ['application_id' => $app->id]);
+
+    $service = new App\Domain\Iam\Services\ApplicationUserSyncService();
+    $iamUsers = $service->getIamUsers($app);
+
+    expect(collect($iamUsers)->pluck('id')->toArray())->toContain($user->id);
+});
+
 it('creates an access profile automatically when none exist for a role', function () {
     $app = Application::factory()->create([
         'callback_url' => 'http://client.test',
@@ -257,11 +282,11 @@ it('creates an access profile automatically when none exist for a role', functio
     $service = new App\Domain\Iam\Services\ApplicationUserSyncService();
     $result = $service->syncUsers($app);
 
-    $user = App\Models\User::where('nip', '222')->first();
+    $user = User::where('nip', '222')->first();
     expect($user)->not->toBeNull();
 
     // new profile should exist and contain the role
-    $profile = App\Domain\Iam\Models\AccessProfile::where('slug', 'auto_xyz_gamma')->first();
+    $profile = AccessProfile::where('slug', 'auto_xyz_gamma')->first();
     expect($profile)->not->toBeNull();
     expect($profile->roles->pluck('id')->toArray())->toContain($role->id);
 
