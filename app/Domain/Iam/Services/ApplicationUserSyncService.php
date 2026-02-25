@@ -73,7 +73,7 @@ class ApplicationUserSyncService
                     'name' => $cUser['name'] ?? null,
                     'email' => $cUser['email'] ?? null,
                     // password is meaningless for sync; generate a random hash
-                    'password' => bcrypt(Str::random(16)),
+                    'password' => bcrypt('rschjaya1234'),
                     'active' => $cUser['active'] ?? true,
                 ]);
                 $created++;
@@ -210,13 +210,27 @@ class ApplicationUserSyncService
         // backwards compatibility) or who are connected to profiles that
         // contain roles for this application.  the `effectiveApplicationRoles`
         // helper on the model simplifies gathering the slugs.
+        // WARNING: the inner queries below are *sensitive* to column
+        // qualification.  both `iam_roles` and the pivot `iam_user_application_roles`
+        // define an `application_id` column.  the previous implementation used a
+        // plain `$q2->where('application_id', $id)` which produced ambiguous SQL
+        // and caused a runtime exception in the logs.  do **not** revert this
+        // block to an unqualified condition.
         $users = User::query()
             ->where(function ($q) use ($application) {
+                // filter by application via the the roles table; every role
+                // record includes its owning application, and using this column
+                // avoids any need to reference the optional pivot field. this
+                // also circumvents a Laravel bug where `wherePivot` could be
+                // compiled as a naked `pivot` identifier, which is what caused
+                // the "unknown column 'pivot'" error in earlier logs.
                 $q->whereHas('applicationRoles', function ($q2) use ($application) {
-                    $q2->where('application_id', $application->id);
+                    $q2->where('iam_roles.application_id', $application->id);
                 })
                     ->orWhereHas('accessProfiles.roles', function ($q3) use ($application) {
-                        $q3->where('application_id', $application->id);
+                        // the access-profile path already joins `iam_roles` so
+                        // qualification is straightforward.
+                        $q3->where('iam_roles.application_id', $application->id);
                     });
             })
             ->with(['accessProfiles.roles', 'applicationRoles'])

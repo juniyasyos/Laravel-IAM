@@ -132,7 +132,7 @@ it('job respects chosen bundles and ignores the rest', function () {
     Http::fake([
         '*' => Http::response([
             'users' => [
-                ['nip' => '333', 'name' => 'Baz', 'email' => 'baz@example.com', 'roles' => ['a','b']],
+                ['nip' => '333', 'name' => 'Baz', 'email' => 'baz@example.com', 'roles' => ['a', 'b']],
             ],
         ], 200),
     ]);
@@ -180,7 +180,7 @@ it('dispatching with an application restricts sync to that app', function () {
     Http::fake([
         '*' => Http::response([
             'users' => [
-                ['nip' => '444', 'name' => 'Qux', 'email' => 'qux@example.com', 'roles' => ['x','y']],
+                ['nip' => '444', 'name' => 'Qux', 'email' => 'qux@example.com', 'roles' => ['x', 'y']],
             ],
         ], 200),
     ]);

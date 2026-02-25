@@ -59,8 +59,15 @@ class SyncApplicationUsers implements ShouldQueue
         }
 
         if (! empty($this->profileIds)) {
-            $appsQuery->whereHas('roles.accessProfiles', function ($q) {
-                $q->whereIn('access_profiles.id', $this->profileIds);
+            // when the job is restricted to a set of access profiles we only
+            // want applications that define roles included in those bundles.
+            // capture the array in the closure to avoid relying on `$this`.
+            $profileIds = $this->profileIds;
+
+            $appsQuery->whereHas('roles.accessProfiles', function ($q) use ($profileIds) {
+                // qualify the column name to prevent Laravel from confusing it
+                // with any `application_id` fields that may be joined later.
+                $q->whereIn('access_profiles.id', $profileIds);
             });
         }
 

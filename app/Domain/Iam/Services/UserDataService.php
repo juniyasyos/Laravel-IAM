@@ -165,11 +165,13 @@ class UserDataService
         $query = $user->applicationRoles()->with('application');
 
         if ($application) {
-            // the pivot table also contains an `application_id` column, so a plain
-            // where() call becomes ambiguous when the relationship joins the
-            // iam_roles table (which has its own application_id). using
-            // wherePivot() ensures the condition is applied on the join table.
-            $query->wherePivot('application_id', $application->id);
+            // avoid the `pivot` alias entirely by referencing the concrete
+            // column name. the relationship automatically joins the
+            // iam_user_application_roles table, so qualifying the condition
+            // with that table prevents the builder from inventing an alias and
+            // causing the "unknown column 'pivot'" error we kept seeing in
+            // previous logs.
+            $query->where('iam_user_application_roles.application_id', $application->id);
         }
 
         return $query->get()->map(fn($role) => [
