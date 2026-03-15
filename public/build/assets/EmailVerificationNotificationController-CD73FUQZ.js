@@ -1,1 +1,0 @@
-import{q as i}from"./index-CMWG4mbA.js";const o=t=>({url:o.url(t),method:"post"});o.definition={methods:["post"],url:"/email/verification-notification"};o.url=t=>o.definition.url+i(t);o.post=t=>({url:o.url(t),method:"post"});const r=t=>({action:o.url(t),method:"post"});r.post=t=>({action:o.url(t),method:"post"});o.form=r;const n={store:o};export{n as E};
