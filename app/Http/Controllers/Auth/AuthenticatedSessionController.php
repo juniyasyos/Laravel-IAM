@@ -176,12 +176,12 @@ class AuthenticatedSessionController extends Controller
 
         if ($user) {
             // Log logout
-            $this->logger->logAuthFlow('logout', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'ip_address' => $request->ip(),
-                'session_id' => $request->session()->getId(),
-            ]);
+            // $this->logger->logAuthFlow('logout', [
+            //     'user_id' => $user->id,
+            //     'email' => $user->email,
+            //     'ip_address' => $request->ip(),
+            //     'session_id' => $request->session()->getId(),
+            // ]);
 
             // Revoke refresh tokens (best-effort) and mark logout time so
             // previously issued access tokens are treated as invalid.
