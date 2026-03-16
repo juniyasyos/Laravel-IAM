@@ -24,12 +24,6 @@ class ApplicationRoleSyncService
         $clientRoles = $result['client_roles'];
         $comparison = $result['comparison'];
 
-        dd([
-            'iam_roles' => $result['iam_roles'],
-            'client_roles' => $clientRoles,
-            'comparison' => $comparison,
-        ]);
-
         // Create roles that exist in client but not in IAM
         $created = 0;
         foreach ($comparison['extra_in_client'] as $clientRole) {
