@@ -38,6 +38,7 @@ class Application extends Model
         'enabled',
         'redirect_uris',
         'callback_url',
+        'backchannel_url',
         'secret',
         'logo_url',
         'token_expiry',

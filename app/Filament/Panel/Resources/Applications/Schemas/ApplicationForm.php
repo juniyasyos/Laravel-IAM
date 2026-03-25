@@ -101,6 +101,15 @@ class ApplicationForm
                                     ->helperText('Endpoint utama yang menerima assertion / token dari SSO gateway.')
                                     ->columnSpanFull(),
 
+                                TextInput::make('backchannel_url')
+                                    ->label('Backchannel Base URL')
+                                    ->url()
+                                    ->maxLength(2048)
+                                    ->nullable()
+                                    ->placeholder('http://web:8000')
+                                    ->helperText('Opsional: gunakan internal service hostname untuk sync/verify/logout backend-to-backend (misal: container alias). Jika kosong, callback_url digunakan.')
+                                    ->columnSpanFull(),
+
                                 TextInput::make('logo_url')
                                     ->label('Logo URL')
                                     ->url()

@@ -85,10 +85,9 @@ class ApplicationRoleSyncService
                 ];
             }
 
-            // Build the sync endpoint from callback URL
-            // From: https://example.com/callback
-            // To: https://example.com/api/iam/sync-roles?app_key=siimut
-            $syncUrl = $this->buildSyncUrl($callbackUrl, $application->app_key);
+            // Build the sync endpoint from application backchannel/callback URL.
+            // Backchannel URL is preferred when set and may point to internal service hostname.
+            $syncUrl = $this->buildSyncUrl($application, $application->app_key);
 
             Log::info('Fetching roles from client application', [
                 'app_key' => $application->app_key,
@@ -190,18 +189,44 @@ class ApplicationRoleSyncService
     }
 
     /**
-     * Build sync URL from callback URL.
+     * Determine the base URL for back-channel operations (sync users/roles).
      */
-    protected function buildSyncUrl(string $callbackUrl, string $appKey): string
+    protected function getBackchannelUrl(Application $application): ?string
     {
-        // Parse the callback URL to get the domain
-        $parsed = parse_url($callbackUrl);
-        $domain = $parsed['scheme'] . '://' . $parsed['host'];
+        // Prefer explicit backchannel URL if configured.
+        $backchannel = $application->backchannel_url ?: $application->callback_url;
 
-        if (isset($parsed['port'])) {
-            $domain .= ':' . $parsed['port'];
+        if (! $backchannel) {
+            return null;
         }
 
-        return $domain . '/api/iam/sync-roles?app_key=' . urlencode($appKey);
+        $parsed = parse_url($backchannel);
+
+        if (empty($parsed['scheme']) || empty($parsed['host'])) {
+            return null;
+        }
+
+        $base = $parsed['scheme'] . '://' . $parsed['host'];
+
+        if (! empty($parsed['port'])) {
+            $base .= ':' . $parsed['port'];
+        }
+
+        return rtrim($base, '/');
+    }
+
+    /**
+     * Build sync URL from back-channel URL.
+     */
+    protected function buildSyncUrl(Application $application, string $appKey): string
+    {
+        $base = $this->getBackchannelUrl($application);
+
+        if (! $base) {
+            throw new \InvalidArgumentException('Application has no callback/backchannel URL configured for sync.');
+        }
+
+        return $base . '/api/iam/sync-roles?app_key=' . urlencode($appKey);
     }
 }
+
