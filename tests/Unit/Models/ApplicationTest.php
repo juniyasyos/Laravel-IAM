@@ -23,7 +23,7 @@ it('casts_redirect_uris_to_array', function () {
     expect($app->redirect_uris)->toBeArray();
 });
 
-it('derives_logout_uri_from_redirect_uris_and_callback', function () {
+it('derives_logout_uri_exclusively_from_redirect_uris', function () {
     $a1 = Application::factory()->create([
         'redirect_uris' => ['https://client.example'],
     ]);
@@ -35,7 +35,7 @@ it('derives_logout_uri_from_redirect_uris_and_callback', function () {
         'callback_url' => 'https://callback.example/path',
     ]);
 
-    expect($a2->logout_uri)->toBe('https://callback.example/iam/logout');
+    expect($a2->logout_uri)->toBeNull();
 });
 
 it('enforces_unique_app_key', function () {

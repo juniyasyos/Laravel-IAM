@@ -54,7 +54,13 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', env('LOG_STACK', 'single')),
+            'channels' => array_values(array_filter(explode(',', env('LOG_STACK', 'single')), function ($channel) {
+                if (trim($channel) === 'slack' && !env('LOG_SLACK_WEBHOOK_URL')) {
+                    return false;
+                }
+
+                return trim($channel) !== '';
+            })),
             'ignore_exceptions' => false,
         ],
 

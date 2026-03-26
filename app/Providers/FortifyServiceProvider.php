@@ -24,6 +24,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register only our own auth routes in routes/auth.php;
+        // avoid duplicate route names from Fortify default route definitions.
+        Fortify::ignoreRoutes();
+
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/TwoFactorChallenge'));
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/ConfirmPassword'));
 

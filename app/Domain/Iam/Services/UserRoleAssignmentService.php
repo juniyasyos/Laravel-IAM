@@ -267,6 +267,25 @@ class UserRoleAssignmentService
     }
 
     /**
+     * Ensure the user has access profiles matching any direct app roles they already have.
+     * This supports upgrade path where roles may be assigned directly first.
+     */
+    public function syncProfilesFromExistingAppRoles(User $user, Application $app): void
+    {
+        $roleSlugs = $user->applicationRoles()
+            ->where('application_id', $app->id)
+            ->pluck('slug')
+            ->toArray();
+
+        if (empty($roleSlugs)) {
+            return;
+        }
+
+        // Avoid infinite loop: call syncProfilesForUserAndApp with current role slugs.
+        $this->syncProfilesForUserAndApp($user, $app, $roleSlugs);
+    }
+
+    /**
      * Get all users with a specific role.
      */
     public function getUsersWithRole(UserApplicationRole $role): Collection

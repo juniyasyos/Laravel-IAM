@@ -22,6 +22,13 @@ class SyncApplicationUsers implements ShouldQueue
     public ?Application $application = null;
 
     /**
+     * Optional list of application IDs to sync.
+     *
+     * @var array<int>
+     */
+    public array $applicationIds = [];
+
+    /**
      * Profile IDs selected by the admin.  When non‑empty the job will only
      * process the applications covered by these bundles and the sync service
      * will restrict profile attachments accordingly.
@@ -31,22 +38,45 @@ class SyncApplicationUsers implements ShouldQueue
     public array $profileIds = [];
 
     /**
+     * Sinkronisasi manual atau otomatis.
+     */
+    public string $syncMode = 'auto';
+
+    /**
+     * Custom mapping (aplikasi => role slugs) untuk mode manual.
+     *
+     * @var array<int,array<string>>
+     */
+    public array $manualRoleMapping = [];
+
+    /**
      * Accept either an array of profile IDs or an Application followed by
-     * profile IDs.  This keeps dispatch calls flexible.
+     * profile IDs, plus optionally application IDs.
      *
      * Examples:
      *   SyncApplicationUsers::dispatch([]);              // all-app sync
      *   SyncApplicationUsers::dispatch($app, $ids);      // single-app sync
-     *   SyncApplicationUsers::dispatch($ids);            // same as first
+     *   SyncApplicationUsers::dispatch($ids);            // role-bundle filter all apps
+     *   SyncApplicationUsers::dispatch($appIds, $profileIds); // selected apps + bundles
      */
-    public function __construct(array|Application $first = [], array $profileIds = [])
+    public function __construct(array|Application $first = [], array $profileIds = [], array $applicationIds = [])
     {
         if ($first instanceof Application) {
             $this->application = $first;
             $this->profileIds = $profileIds;
-        } else {
-            $this->profileIds = $first;
+            $this->applicationIds = $applicationIds;
+            return;
         }
+
+        if (empty($profileIds) && empty($applicationIds)) {
+            // legacy: first arg is profileIds
+            $this->profileIds = $first;
+            return;
+        }
+
+        // new invocation: first is applicationIds, second is profileIds
+        $this->applicationIds = $first;
+        $this->profileIds = $profileIds;
     }
 
     public function handle(): void
@@ -56,6 +86,8 @@ class SyncApplicationUsers implements ShouldQueue
 
         if ($this->application) {
             $appsQuery->where('id', $this->application->id);
+        } elseif (! empty($this->applicationIds)) {
+            $appsQuery->whereIn('id', $this->applicationIds);
         }
 
         if (! empty($this->profileIds)) {
@@ -72,7 +104,11 @@ class SyncApplicationUsers implements ShouldQueue
         }
 
         $appsQuery->get()->each(function (Application $app) {
-            $service = new ApplicationUserSyncService($this->profileIds);
+            $service = new ApplicationUserSyncService(
+                allowedProfileIds: $this->profileIds,
+                syncMode: $this->syncMode,
+                manualRoleMapping: $this->manualRoleMapping,
+            );
 
             try {
                 $result = $service->syncUsers($app);

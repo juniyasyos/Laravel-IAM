@@ -127,27 +127,12 @@ class Application extends Model
      */
     public function getLogoutUriAttribute(): ?string
     {
-        // Prefer explicit redirect URIs (first entry)
+        // Strict policy: use configured redirect_uris for front-channel logout
+        // target. Do not fallback to callback_url to avoid mixing internal
+        // container hostnames with browser-accessible URLs.
         if (! empty($this->redirect_uris) && is_array($this->redirect_uris) && count($this->redirect_uris) > 0) {
             $base = rtrim($this->redirect_uris[0], '/');
             return $base . '/iam/logout';
-        }
-
-        // Fallback to callback_url host
-        if (! empty($this->callback_url)) {
-            $parts = parse_url($this->callback_url);
-
-            if (! isset($parts['scheme']) || ! isset($parts['host'])) {
-                return null;
-            }
-
-            $base = $parts['scheme'] . '://' . $parts['host'];
-
-            if (! empty($parts['port'])) {
-                $base .= ':' . $parts['port'];
-            }
-
-            return rtrim($base, '/') . '/iam/logout';
         }
 
         return null;

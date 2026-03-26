@@ -21,9 +21,23 @@ class ApplicationUserSyncService
      */
     protected array $allowedProfileIds = [];
 
-    public function __construct(array $allowedProfileIds = [])
+    /**
+     * Sinkronisasi mode: `auto` atau `manual`.
+     */
+    protected string $syncMode = 'auto';
+
+    /**
+     * Manual role mapping per application (app_id => role slug list).
+     *
+     * @var array<int,array<string>>
+     */
+    protected array $manualRoleMapping = [];
+
+    public function __construct(array $allowedProfileIds = [], string $syncMode = 'auto', array $manualRoleMapping = [])
     {
         $this->allowedProfileIds = $allowedProfileIds;
+        $this->syncMode = $syncMode;
+        $this->manualRoleMapping = $manualRoleMapping;
     }
 
     /**
@@ -86,13 +100,23 @@ class ApplicationUserSyncService
                 $updated++;
             }
 
-            // roles array expected on client side; default to empty
-            $roleSlugs = $cUser['roles'] ?? [];
+            // choose role slugs based on mode and payload.
+            $roleSlugs = [];
+            if ($this->syncMode === 'manual' && isset($this->manualRoleMapping[$application->id])) {
+                $roleSlugs = $this->manualRoleMapping[$application->id];
+            } else {
+                $roleSlugs = $cUser['roles'] ?? [];
+            }
+
             try {
                 // the new workflow no longer assigns roles directly; instead we
                 // link the user to the appropriate access profiles that contain
                 // the given slugs for this application.
                 $assignmentService->syncProfilesForUserAndApp($user, $application, $roleSlugs);
+
+                // if the user has existing direct app roles, ensure those roles
+                // are also represented by access profiles.
+                $assignmentService->syncProfilesFromExistingAppRoles($user, $application);
             } catch (\Exception $e) {
                 // log and continue, but don't fail the entire sync
                 Log::warning('user_role_sync_failed', [
