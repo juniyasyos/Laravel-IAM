@@ -105,68 +105,48 @@ it('syncs a client user by attaching the appropriate access profiles', function 
     expect($user->applicationRoles)->toBeEmpty();
 });
 
-it('syncs roles for an already-existing user during sync', function () {
+it('previews sync without creating/updating users and shows role to bundle mapping', function () {
     $app = Application::factory()->create([
         'callback_url' => 'http://client.test',
         'app_key' => 'abc',
     ]);
 
-    $role = ApplicationRole::create([
+    $role1 = ApplicationRole::create([
         'application_id' => $app->id,
         'slug' => 'alpha',
         'name' => 'Alpha',
     ]);
-
-    $profile = AccessProfile::factory()->create();
-    $profile->roles()->attach($role->id);
-
-    $existingUser = User::factory()->create(['nip' => '505', 'name' => 'Existing User']);
-
-    Http::fake([
-        '*' => Http::response([
-            'users' => [
-                ['nip' => '505', 'name' => 'Existing User', 'email' => 'existing@example.com', 'roles' => ['alpha']],
-            ],
-        ], 200),
-    ]);
-
-    $service = new App\Domain\Iam\Services\ApplicationUserSyncService();
-    $service->syncUsers($app);
-
-    $fresh = $existingUser->fresh();
-    expect($fresh->accessProfiles->pluck('id')->toArray())->toContain($profile->id);
-});
-
-it('attaches profile when profile slug matches incoming role slug', function () {
-    $app = Application::factory()->create([
-        'callback_url' => 'http://client.test',
-        'app_key' => 'abc',
-    ]);
-
-    $role = ApplicationRole::create([
+    $role2 = ApplicationRole::create([
         'application_id' => $app->id,
-        'slug' => 'alpha',
-        'name' => 'Alpha',
+        'slug' => 'beta',
+        'name' => 'Beta',
     ]);
 
-    $profile = AccessProfile::factory()->create(['slug' => 'alpha']);
-    $profile->roles()->attach($role->id);
+    $profile1 = AccessProfile::factory()->create();
+    $profile1->roles()->attach($role1->id);
+    $profile2 = AccessProfile::factory()->create();
+    $profile2->roles()->attach($role2->id);
 
     Http::fake([
         '*' => Http::response([
             'users' => [
-                ['nip' => '224', 'name' => 'Profile Match', 'email' => 'profile.match@example.com', 'roles' => ['alpha']],
+                ['nip' => '111', 'name' => 'Foo', 'email' => 'foo@example.com', 'roles' => ['alpha', 'beta']],
             ],
         ], 200),
     ]);
 
-    $service = new App\Domain\Iam\Services\ApplicationUserSyncService();
-    $service->syncUsers($app);
+    $service = new ApplicationUserSyncService();
+    $result = $service->previewUsers($app);
 
-    $fresh = User::where('nip', '224')->first();
-    expect($fresh)->not->toBeNull();
-    expect($fresh->accessProfiles->pluck('id')->toArray())->toContain($profile->id);
+    expect($result['success'])->toBeTrue();
+    expect($result['preview'][0]['client_role_slugs'])->toEqualCanonicalizing(['alpha', 'beta']);
+    expect($result['preview'][0]['planned_profile_assignment']['candidate_profiles'])
+        ->toHaveCount(2);
+    expect($result['preview'][0]['planned_profile_assignment']['missing_role_slugs'])
+        ->toBeEmpty();
+    expect(User::where('nip', '111')->exists())->toBeFalse();
 });
+
 
 // job should only attach profiles that were selected in the modal
 it('job respects chosen bundles and ignores the rest', function () {

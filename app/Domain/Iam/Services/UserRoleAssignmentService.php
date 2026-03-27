@@ -28,6 +28,71 @@ class UserRoleAssignmentService
     }
 
     /**
+     * Plan which access profiles would be used for given role slugs in an app.
+     * This is a dry-run helper and does not modify the database.
+     *
+     * Returns array with existing profile candidates, covered slugs, missing
+     * slugs, and expected auto-profile names when no existing profile covers a slug.
+     */
+    public function planProfilesForRoleSlugs(Application $app, array $roleSlugs): array
+    {
+        $roleSlugs = array_values(array_unique($roleSlugs));
+
+        $roles = \App\Domain\Iam\Models\ApplicationRole::where('application_id', $app->id)
+            ->whereIn('slug', $roleSlugs)
+            ->get();
+
+        $invalidSlugs = array_diff($roleSlugs, $roles->pluck('slug')->toArray());
+
+        $existingProfiles = \App\Domain\Iam\Models\AccessProfile::query()
+            ->whereHas('roles', function ($q) use ($app, $roleSlugs) {
+                $q->where('application_id', $app->id)
+                    ->whereIn('slug', $roleSlugs);
+            })
+            ->with('roles')
+            ->get();
+
+        $profileIds = $existingProfiles->pluck('id')->toArray();
+        if (! empty($this->allowedProfileIds)) {
+            $profileIds = array_intersect($profileIds, $this->allowedProfileIds);
+            $existingProfiles = $existingProfiles->whereIn('id', $profileIds);
+        }
+
+        $coveredSlugs = $existingProfiles
+            ->flatMap(fn($p) => $p->roles->pluck('slug'))
+            ->unique()
+            ->toArray();
+
+        $missingSlugs = array_diff($roleSlugs, $coveredSlugs);
+
+        $candidateProfiles = $existingProfiles->map(function ($profile) {
+            return [
+                'id' => $profile->id,
+                'slug' => $profile->slug,
+                'name' => $profile->name,
+                'role_slugs' => $profile->roles->pluck('slug')->toArray(),
+            ];
+        })->toArray();
+
+        $autoProfiles = array_map(function ($slug) use ($app) {
+            return [
+                'slug' => 'auto_' . $app->app_key . '_' . $slug,
+                'name' => 'Auto ' . $slug,
+                'role_slugs' => [$slug],
+            ];
+        }, $missingSlugs);
+
+        return [
+            'requested_role_slugs' => $roleSlugs,
+            'invalid_role_slugs' => array_values($invalidSlugs),
+            'covered_role_slugs' => array_values($coveredSlugs),
+            'missing_role_slugs' => array_values($missingSlugs),
+            'candidate_profiles' => $candidateProfiles,
+            'auto_profiles' => $autoProfiles,
+        ];
+    }
+
+    /**
      * Assign a role to a user.
      *
      * @throws \Exception
@@ -129,9 +194,25 @@ class UserRoleAssignmentService
 
         $missingSlugs = array_diff($roleSlugs, $coveredSlugs);
         if (! empty($missingSlugs) && empty($this->allowedProfileIds)) {
-            // Do not create profiles automatically; only use existing ones.
-            // This function will only update existing profiles (if found) but
-            // will not make brand-new AccessProfile records.
+            foreach ($missingSlugs as $slug) {
+                $role = \App\Domain\Iam\Models\ApplicationRole::where('application_id', $app->id)
+                    ->where('slug', $slug)
+                    ->first();
+
+                if (! $role) {
+                    continue;
+                }
+
+                $profile = \App\Domain\Iam\Models\AccessProfile::create([
+                    'slug' => 'auto_' . $app->app_key . '_' . $slug,
+                    'name' => 'Auto ' . $slug,
+                    'description' => 'Automatically created bundle for ' . $slug,
+                    'is_system' => false,
+                    'is_active' => true,
+                ]);
+                $profile->roles()->attach($role->id);
+                $profileIds[] = $profile->id;
+            }
         }
 
         // find all profiles that reference at least one of the supplied roles
@@ -174,34 +255,8 @@ class UserRoleAssignmentService
                     continue;
                 }
 
-                $profileSlug = $app->app_key . '_' . $slug;
-                $profile = \App\Domain\Iam\Models\AccessProfile::where('slug', $profileSlug)
-                    ->orWhere('slug', $slug)
-                    ->first();
-
-                if (! $profile) {
-                    // No profile exists for this role; as requested we do not create
-                    // a profile.  Fallback by ensuring the user has the direct role.
-                    $rolePivot = $user->applicationRoles()
-                        ->where('iam_roles.id', $role->id)
-                        ->exists();
-
-                    if (! $rolePivot) {
-                        $user->applicationRoles()->attach($role->id, [
-                            'assigned_by' => $assignedBy?->id,
-                            'application_id' => $app->id,
-                        ]);
-                    }
-
-                    continue;
-                }
-
-                $profile->name = $slug;
-                $profile->is_system = false;
-                $profile->is_active = true;
-                $profile->save();
-
-                $profile->roles()->syncWithoutDetaching($role->id);
+                // Ensure each role has a corresponding profile with same slug
+                $profile = $this->ensureProfileForRole($role);
                 $profileIds[] = $profile->id;
             }
         }
@@ -223,6 +278,30 @@ class UserRoleAssignmentService
         if (! empty($toAdd)) {
             $user->accessProfiles()->attach($toAdd, ['assigned_by' => $assignedBy?->id]);
         }
+    }
+
+    /**
+     * Resolve or create an access profile for a given application role.
+     * The profile slug is set to the role slug to support the requested
+     * behavior that role => profile slug mapping is 1:1.
+     */
+    protected function ensureProfileForRole(\App\Domain\Iam\Models\ApplicationRole $role): \App\Domain\Iam\Models\AccessProfile
+    {
+        $profile = \App\Domain\Iam\Models\AccessProfile::firstOrCreate(
+            ['slug' => $role->slug],
+            [
+                'name' => $role->name ?: ucfirst($role->slug),
+                'description' => 'Auto-created profile from role ' . $role->slug . ' for app ' . $role->application->app_key,
+                'is_system' => false,
+                'is_active' => true,
+            ]
+        );
+
+        if (! $profile->roles()->where('iam_roles.id', $role->id)->exists()) {
+            $profile->roles()->attach($role->id);
+        }
+
+        return $profile;
     }
 
     /**

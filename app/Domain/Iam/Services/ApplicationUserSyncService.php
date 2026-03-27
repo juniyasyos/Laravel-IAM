@@ -140,6 +140,88 @@ class ApplicationUserSyncService
     }
 
     /**
+     * Prepare a dry-run preview of sync actions for the application.
+     * Returns client user records with expected profile mapping, but does not
+     * create or update any users.
+     */
+    public function previewUsers(Application $application): array
+    {
+        $result = $this->fetchClientUsers($application);
+        if (! $result['success']) {
+            return $result;
+        }
+
+        $clientUsers = $result['client_users'];
+        $comparison = $result['comparison'];
+
+        $assignmentService = new UserRoleAssignmentService();
+        if (! empty($this->allowedProfileIds)) {
+            $assignmentService->setAllowedProfileIds($this->allowedProfileIds);
+        }
+
+        $usersPreview = [];
+
+        foreach ($clientUsers as $cUser) {
+            $roleSlugs = [];
+            if ($this->syncMode === 'manual' && isset($this->manualRoleMapping[$application->id])) {
+                $roleSlugs = $this->manualRoleMapping[$application->id];
+            } else {
+                $roleSlugs = $cUser['roles'] ?? [];
+            }
+
+            $userQuery = User::query();
+            if (! empty($cUser['nip'])) {
+                $userQuery->where('nip', $cUser['nip']);
+            }
+            if (! empty($cUser['email'])) {
+                $userQuery->orWhere('email', $cUser['email']);
+            }
+            $user = $userQuery->first();
+
+            $existingProfiles = [];
+            if ($user) {
+                $existingProfiles = $user->accessProfiles()
+                    ->whereHas('roles', function ($q) use ($application) {
+                        $q->where('application_id', $application->id);
+                    })
+                    ->with('roles')
+                    ->get()
+                    ->map(function ($profile) {
+                        return [
+                            'id' => $profile->id,
+                            'slug' => $profile->slug,
+                            'name' => $profile->name,
+                            'role_slugs' => $profile->roles->pluck('slug')->toArray(),
+                        ];
+                    })->toArray();
+            }
+
+            $plan = $assignmentService->planProfilesForRoleSlugs($application, $roleSlugs);
+
+            $usersPreview[] = [
+                'nip' => $cUser['nip'] ?? null,
+                'email' => $cUser['email'] ?? null,
+                'name' => $cUser['name'] ?? null,
+                'active' => $cUser['active'] ?? null,
+                'client_role_slugs' => $roleSlugs,
+                'has_iam_user' => (bool) $user,
+                'iam_user_id' => $user?->id,
+                'current_profile_assignments' => $existingProfiles,
+                'planned_profile_assignment' => $plan,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Dry-run preview generated',
+            'iam_users' => $this->getIamUsers($application),
+            'client_users' => $clientUsers,
+            'comparison' => $comparison,
+            'preview' => $usersPreview,
+        ];
+    }
+
+    /**
      * Fetch users from a client application via its sync endpoint.
      */
     public function fetchClientUsers(Application $application): array
