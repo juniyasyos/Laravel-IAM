@@ -11,6 +11,7 @@
         "filament/filament": "~4.0",
         "guava/filament-modal-relation-managers": "^2.0",
         "inertiajs/inertia-laravel": "^2.0",
+        "juniyasyos/manage-unit-kerja": "^2.1",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
         "laravel/passport": "^12",

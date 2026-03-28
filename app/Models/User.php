@@ -90,6 +90,18 @@ class User extends Authenticatable
     }
 
     /**
+     * Relasi ke UnitKerja dengan tabel pivot
+     *
+     * @return BelongsToMany
+     */
+    public function unitKerjas(): BelongsToMany
+    {
+        return $this->belongsToMany(UnitKerja::class, 'user_unit_kerja', 'user_id', 'unit_kerja_id')
+            ->withTimestamps();
+    }
+
+
+    /**
      * Get all application roles via access profiles.
      * This returns roles that are assigned through access profiles.
      */
