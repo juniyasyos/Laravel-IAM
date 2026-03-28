@@ -31,6 +31,8 @@ Route::middleware('auth:api')->prefix('auth')->group(function () {
 Route::middleware('auth:api')->group(function () {
     Route::get('/users/me', UserInfoController::class);
     Route::get('/user', UserInfoController::class);
+    Route::get('/users/applications', [UserInfoController::class, 'applications'])
+        ->name('users.applications');
 });
 
 $ssoRoutes = require __DIR__ . '/sso.php';
