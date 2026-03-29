@@ -98,11 +98,17 @@ class Application extends Model
     }
 
     /**
-     * Get the token expiry in seconds (default: 3600).
+     * Get the token expiry in seconds.
+     *
+     * Priority:
+     * 1. app-specific value `token_expiry`
+     * 2. environment override `IAM_SSO_TOKEN_EXPIRY_SECONDS`
+     * 3. fallback default 3600
      */
     public function getTokenExpirySeconds(): int
     {
-        return $this->token_expiry ?? 3600;
+        return $this->token_expiry
+            ?? (int) env('IAM_SSO_TOKEN_EXPIRY_SECONDS', 3600);
     }
 
     /**

@@ -59,6 +59,12 @@ class SsoVerifyController extends Controller
                 'nip' => $payload['nip'] ?? null,
                 'email' => $payload['email'] ?? null,
 
+                // Root token claims for client mapping
+                'sub' => $payload['sub'] ?? null,
+                'app' => $payload['app'] ?? null,
+                'roles' => $payload['roles'] ?? [],
+                'perms' => $payload['perms'] ?? [],
+
                 // Token info
                 'token_info' => [
                     'sub' => $payload['sub'] ?? null,
@@ -68,7 +74,7 @@ class SsoVerifyController extends Controller
                     'expires_at' => isset($payload['exp']) ? Carbon::createFromTimestamp($payload['exp'])->toIso8601String() : null,
                 ],
 
-                // Roles from token
+                // Roles from token (explicit field remains good compatibility)
                 'roles' => $payload['roles'] ?? [],
             ];
 
