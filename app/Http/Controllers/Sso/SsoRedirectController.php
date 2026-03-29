@@ -133,6 +133,26 @@ class SsoRedirectController extends Controller
                 'app_key' => $validated['app'],
             ]);
 
+            // If we have a callback URL configured, redirect back with error details.
+            if (! empty($application->callback_url ?? null)) {
+                $separator = str_contains($application->callback_url, '?') ? '&' : '?';
+                $redirectUrl = $application->callback_url . $separator . http_build_query([
+                    'error' => 'access_denied',
+                    'error_description' => $exception->getMessage(),
+                    'error_type' => class_basename($exception),
+                    'error_location' => $exception->getFile() . ':' . $exception->getLine(),
+                ]);
+
+                Log::warning('[IAM] SSO: Redirecting to callback with error', [
+                    'redirect_url' => $redirectUrl,
+                    'app' => $validated['app'],
+                    'user_id' => $request->user()?->id,
+                ]);
+
+                return redirect()->away($redirectUrl);
+            }
+
+            // Fallback to default exception behavior if no callback URL is available.
             throw $exception;
         }
     }

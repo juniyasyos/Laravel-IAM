@@ -38,6 +38,20 @@ class TokenService
             // Get token payload with comprehensive user data
             $tokenPayload = $this->userDataService->getTokenPayload($user, $application);
 
+            $roles = $tokenPayload['roles'] ?? [];
+
+            // Enforce per-application role assignment.
+            // Users without roles should not get a token for this application.
+            if (empty($roles) && ! $user->isIAMAdmin()) {
+                $this->logger->logSecurity('token_issue_denied_no_roles', [
+                    'app_key' => $application->app_key,
+                    'user_id' => $user->getAuthIdentifier(),
+                    'user_nip' => $user->nip ?? null,
+                ]);
+
+                throw new \RuntimeException('Access denied: user has no roles for this application.');
+            }
+
             $payload = [
                 'iss' => $this->getIssuer(),
                 'sub' => (string) $user->getAuthIdentifier(),
@@ -45,7 +59,7 @@ class TokenService
                 'email' => $user->email ?? null,
                 'name' => $user->name ?? null,
                 'app' => $application->app_key,
-                'roles' => $tokenPayload['roles'] ?? [],
+                'roles' => $roles,
                 'iat' => $issuedAt->getTimestamp(),
                 'exp' => $expiresAt->getTimestamp(),
             ];
