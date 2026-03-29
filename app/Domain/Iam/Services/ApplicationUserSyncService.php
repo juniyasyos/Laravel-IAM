@@ -254,12 +254,29 @@ class ApplicationUserSyncService
                     ->timeout(10)
                     ->get($syncUrl);
             } else {
-                // legacy hmac signature on empty body
-                $secret = config('sso.secret', env('SSO_SECRET', ''));
+                // legacy hmac signature on empty body. Use per-application secret if set,
+                // otherwise fallback to global SSO secret.
+                $secret = $application->secret ?? config('sso.secret', env('SSO_SECRET', ''));
+                if (empty($secret)) {
+                    Log::warning('ApplicationUserSyncService backchannel cannot sign request: missing secret', [
+                        'app_key' => $application->app_key,
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'Missing backchannel secret for application',
+                        'iam_users' => $this->getIamUsers($application),
+                        'client_users' => [],
+                    ];
+                }
+
                 $signature = hash_hmac('sha256', '', $secret);
                 $header = config('sso.backchannel.signature_header', 'IAM-Signature');
 
-                $response = Http::withHeaders([$header => $signature])
+                $response = Http::withHeaders([
+                    $header => $signature,
+                    'X-IAM-App-Key' => $application->app_key,
+                ])
                     ->timeout(10)
                     ->get($syncUrl);
             }

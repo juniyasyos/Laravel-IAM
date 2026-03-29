@@ -15,9 +15,15 @@ class ApplicationRoleSyncService
      */
     public function syncRoles(Application $application): array
     {
+        $mode = config('iam.role_sync_mode', 'pull');
+
+        if ($mode === 'push') {
+            return $this->pushRolesToClient($application);
+        }
+
         $result = $this->fetchClientRoles($application);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return $result;
         }
 
@@ -143,6 +149,81 @@ class ApplicationRoleSyncService
                 'client_roles' => [],
             ];
         }
+    }
+
+    /**
+     * Push IAM role set to client application and let client update its role table.
+     */
+    protected function pushRolesToClient(Application $application): array
+    {
+        $roles = $this->getIamRoles($application);
+        $syncUrl = $this->buildPushRoleUrl($application, $application->app_key);
+
+        Log::info('Pushing roles to client application', [
+            'app_key' => $application->app_key,
+            'sync_url' => $syncUrl,
+            'role_count' => count($roles),
+        ]);
+
+        try {
+            if (! config('iam.backchannel_verify', true)) {
+                $response = Http::timeout(50)->post($syncUrl, ['roles' => $roles]);
+            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+                $token = app(JWTTokenService::class)->generateBackchannelToken($application);
+                $response = Http::withToken($token)
+                    ->timeout(50)
+                    ->post($syncUrl, ['roles' => $roles]);
+            } else {
+                $secret = $application->secret ?? config('sso.secret', env('SSO_SECRET', ''));
+                $signature = hash_hmac('sha256', json_encode(['roles' => $roles]), $secret);
+                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+
+                $response = Http::withHeaders([
+                    $header => $signature,
+                    'X-IAM-App-Key' => $application->app_key,
+                ])
+                    ->timeout(50)
+                    ->post($syncUrl, ['roles' => $roles]);
+            }
+
+            if (! $response->successful()) {
+                return [
+                    'success' => false,
+                    'error' => "Client returned status {$response->status()}",
+                    'iam_roles' => $roles,
+                    'client_roles' => [],
+                ];
+            }
+
+            $clientData = $response->json();
+            return array_merge(['success' => true], $clientData);
+        } catch (\Exception $e) {
+            Log::error('Failed to push roles to client application', [
+                'app_key' => $application->app_key,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'iam_roles' => $roles,
+                'client_roles' => [],
+            ];
+        }
+    }
+
+    /**
+     * Build the client endpoint to receive pushed roles.
+     */
+    protected function buildPushRoleUrl(Application $application, string $appKey): string
+    {
+        $base = $this->getBackchannelUrl($application);
+
+        if (! $base) {
+            throw new \InvalidArgumentException('Application has no callback/backchannel URL configured for sync.');
+        }
+
+        return $base . '/api/iam/push-roles?app_key=' . urlencode($appKey);
     }
 
     /**
