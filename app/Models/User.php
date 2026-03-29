@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Domain\Iam\Models\Application;
 use App\Domain\Iam\Models\Role;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -136,6 +137,10 @@ class User extends Authenticatable
      */
     public function rolesByApp(): array
     {
+        if ($this->isIAMAdmin()) {
+            return [];
+        }
+
         $roles = $this->applicationRoles()->with('application')->get();
 
         $grouped = [];
@@ -152,9 +157,16 @@ class User extends Authenticatable
 
     /**
      * Get list of app_keys this user has access to.
+     *
+     * NOTE: IAM admin users (e.g. nip=0000.00000) should not implicitly
+     * inherit access to all apps unless permissions are explicitly assigned.
      */
     public function accessibleApps(): array
     {
+        if ($this->isIAMAdmin()) {
+            return [];
+        }
+
         return $this->applicationRoles()
             ->with('application')
             ->get()
@@ -162,6 +174,21 @@ class User extends Authenticatable
             ->unique()
             ->values()
             ->toArray();
+    }
+
+    public function hasActiveAccessProfiles(): bool
+    {
+        return $this->accessProfiles()->where('is_active', true)->exists();
+    }
+
+    public function hasActiveAccessProfileForApp(Application $application): bool
+    {
+        return $this->accessProfiles()
+            ->where('is_active', true)
+            ->whereHas('roles', function ($q) use ($application) {
+                $q->where('application_id', $application->id);
+            })
+            ->exists();
     }
 
     /**

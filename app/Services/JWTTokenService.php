@@ -33,6 +33,12 @@ class JWTTokenService
         $now = time();
         $expiry = $now + $application->getTokenExpirySeconds();
 
+        $roles = $this->getUserRolesForApplication($user, $application);
+
+        if (empty($roles)) {
+            throw new \Exception('Access denied: no roles available for this user and application.');
+        }
+
         $payload = [
             'iss' => $this->issuer,
             'sub' => $user->id,
@@ -41,7 +47,7 @@ class JWTTokenService
             'name' => $user->name,
             'email' => $user->email,
             'app_key' => $application->app_key,
-            'roles' => $this->getUserRolesForApplication($user, $application),
+            'roles' => $roles,
             'type' => 'access',
         ];
 

@@ -84,7 +84,7 @@ class SSOController extends Controller
             'state' => $request->state,
         ]);
 
-        return redirect($request->redirect_uri.'?'.$query);
+        return redirect($request->redirect_uri . '?' . $query);
     }
 
     /**
@@ -178,6 +178,14 @@ class SSOController extends Controller
 
         // Get user
         $user = User::findOrFail($codeData['user_id']);
+
+        // Akses ketat: user harus punya access profile aktif dengan role di app target.
+        if (! $user->hasActiveAccessProfileForApp($application)) {
+            return response()->json([
+                'error' => 'access_denied',
+                'error_description' => 'User does not have access profile roles for this application.',
+            ], 403);
+        }
 
         // Generate tokens
         $accessToken = $this->jwtService->generateAccessToken($user, $application);
@@ -385,7 +393,7 @@ class SSOController extends Controller
 
             // Get user
             $user = User::findOrFail($decoded->sub);
-            
+
             // Get application
             $application = Application::findByKey($decoded->app_key);
 

@@ -35,3 +35,11 @@ if (app()->environment('testing')) {
 Route::middleware('auth')
     ->get('/oauth/userinfo', UserInfoController::class)
     ->name('oauth.userinfo');
+
+Route::middleware('auth')
+    ->get('/iam/debug/user-applications', [UserInfoController::class, 'applications'])
+    ->name('iam.debug.user-applications');
+
+Route::middleware('auth')
+    ->get('/iam/debug/user-access-profiles', [UserInfoController::class, 'accessProfiles'])
+    ->name('iam.debug.user-access-profiles');

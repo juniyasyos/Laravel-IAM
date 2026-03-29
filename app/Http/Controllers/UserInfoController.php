@@ -75,4 +75,37 @@ class UserInfoController extends Controller
             'timestamp' => now()->toIso8601String(),
         ]);
     }
+
+    public function accessProfiles(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Through getUserData() we get effective profiles; but for debugging we return
+        // direct assigned access profiles from user relation to avoid out-of-sync logic.
+        $profiles = $user->accessProfiles()
+            ->with(['roles.application'])
+            ->get()
+            ->map(function ($profile) {
+                return [
+                    'id' => $profile->id,
+                    'slug' => $profile->slug,
+                    'name' => $profile->name,
+                    'description' => $profile->description,
+                    'is_active' => $profile->is_active,
+                    'roles' => $profile->roles->map(fn($role) => [
+                        'app_key' => $role->application?->app_key,
+                        'role_slug' => $role->slug,
+                        'role_name' => $role->name,
+                    ])->toArray(),
+                ];
+            });
+
+        return response()->json([
+            'sub' => (string) $user->id,
+            'user_id' => $user->id,
+            'test' => 'This endpoint returns directly assigned access profiles with their roles. It does not compute effective profiles/roles.',
+            'access_profiles' => $profiles,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    }
 }

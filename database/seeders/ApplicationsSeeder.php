@@ -23,7 +23,7 @@ class ApplicationsSeeder extends Seeder
                     'http://127.0.0.1:8088',
                 ],
                 'callback_url' => 'http://127.0.0.1:8088/sso/callback',
-                'backchannel_url' => 'http://web:8000',
+                'backchannel_url' => 'http://127.0.0.1:8088',
                 'secret' => 'siimut_secret_key_123',
                 'logo_url' => null,
                 'token_expiry' => 3600,

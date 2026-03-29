@@ -32,7 +32,7 @@ class AccessProfilesRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->description(fn ($record) => $record->description),
+                    ->description(fn($record) => $record->description),
                 TextColumn::make('slug')
                     ->label('Slug')
                     ->searchable()
@@ -53,7 +53,7 @@ class AccessProfilesRelationManager extends RelationManager
                     ->falseIcon('heroicon-o-pencil')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->tooltip(fn (bool $state): string => $state ? 'System profile (protected)' : 'Custom profile'),
+                    ->tooltip(fn(bool $state): string => $state ? 'System profile (protected)' : 'Custom profile'),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
@@ -73,7 +73,7 @@ class AccessProfilesRelationManager extends RelationManager
                     ->modalHeading('Assign Access Profile to User')
                     ->modalDescription('Select an access profile to grant this user multiple application roles at once.')
                     ->preloadRecordSelect()
-                    ->schema(fn (AttachAction $action): array => [
+                    ->schema(fn(AttachAction $action): array => [
                         Select::make('recordId')
                             ->label('Access Profile')
                             ->options(AccessProfile::query()
@@ -84,6 +84,22 @@ class AccessProfilesRelationManager extends RelationManager
                             ->native(false)
                             ->helperText('Only active profiles are shown.'),
                     ])
+                    ->before(function (array $data) {
+                        $ownerRecord = $this->getOwnerRecord();
+                        $profileId = $data['recordId'] ?? null;
+
+                        if ($ownerRecord && $profileId && $ownerRecord->accessProfiles()->where('access_profiles.id', $profileId)->exists()) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Duplicate profile assignment')
+                                ->body('This access profile is already assigned to the user.')
+                                ->send();
+
+                            return false;
+                        }
+
+                        return $data;
+                    })
                     ->after(function () {
                         $userId = Auth::id();
                         if ($userId && $this->getOwnerRecord() && method_exists($this, 'getRecord')) {

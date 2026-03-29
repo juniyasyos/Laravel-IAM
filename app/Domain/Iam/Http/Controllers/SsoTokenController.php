@@ -40,6 +40,14 @@ class SsoTokenController extends Controller
             ], 401);
         }
 
+        // Require at least one active access profile for the user.
+        if (! $user->hasActiveAccessProfiles()) {
+            return response()->json([
+                'error' => 'access_denied',
+                'message' => 'User requires at least one active access profile to request a token.',
+            ], 403);
+        }
+
         // Validate application if app_key provided
         if ($request->has('app_key')) {
             $application = Application::findByKey($request->app_key);
@@ -49,6 +57,14 @@ class SsoTokenController extends Controller
                     'error' => 'invalid_application',
                     'message' => 'Application is not enabled.',
                 ], 400);
+            }
+
+            // Ensure user has a profile that grants roles for this app.
+            if (! $user->hasActiveAccessProfileForApp($application)) {
+                return response()->json([
+                    'error' => 'access_denied',
+                    'message' => 'User does not have an active access profile with roles for this application.',
+                ], 403);
             }
         }
 

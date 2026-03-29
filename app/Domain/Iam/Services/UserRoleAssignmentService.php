@@ -176,7 +176,7 @@ class UserRoleAssignmentService
                     $q2->where('application_id', $app->id)
                         ->whereIn('slug', $roleSlugs);
                 })
-                ->orWhereIn('slug', $roleSlugs);
+                    ->orWhereIn('slug', $roleSlugs);
             })
             ->with('roles')
             ->get();
@@ -193,26 +193,14 @@ class UserRoleAssignmentService
             ->toArray();
 
         $missingSlugs = array_diff($roleSlugs, $coveredSlugs);
+
+        // Do not auto-create profiles for missing role slugs. Keep existing behavior
+        // to avoid side effects in the client's profile management flow.
         if (! empty($missingSlugs) && empty($this->allowedProfileIds)) {
-            foreach ($missingSlugs as $slug) {
-                $role = \App\Domain\Iam\Models\ApplicationRole::where('application_id', $app->id)
-                    ->where('slug', $slug)
-                    ->first();
-
-                if (! $role) {
-                    continue;
-                }
-
-                $profile = \App\Domain\Iam\Models\AccessProfile::create([
-                    'slug' => 'auto_' . $app->app_key . '_' . $slug,
-                    'name' => 'Auto ' . $slug,
-                    'description' => 'Automatically created bundle for ' . $slug,
-                    'is_system' => false,
-                    'is_active' => true,
-                ]);
-                $profile->roles()->attach($role->id);
-                $profileIds[] = $profile->id;
-            }
+            // for visibility we might log or ignore; we keep skip-only behavior
+            // so that clients can fix access profile definitions explicitly.
+            //
+            // e.g. Log::warning('Some requested roles were not covered by existing profiles', [...]);
         }
 
         // find all profiles that reference at least one of the supplied roles
