@@ -310,4 +310,3 @@ class ApplicationRoleSyncService
         return $base . '/api/iam/sync-roles?app_key=' . urlencode($appKey);
     }
 }
-

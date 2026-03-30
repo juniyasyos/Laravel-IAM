@@ -2,122 +2,177 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Domain\Iam\Models\AccessProfile;
 use App\Domain\Iam\Models\Application;
 use App\Domain\Iam\Models\ApplicationRole;
-use Illuminate\Database\Seeder;
 
 class AccessProfileSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Daftar profil akses global yang umum di RS kamu
-        $profiles = [
+        /**
+         * 🔥 SINGLE SOURCE OF TRUTH
+         * Semua didefinisikan di sini:
+         * - Access Profile
+         * - App
+         * - Roles (slug, name, description)
+         */
+        $mappings = [
             [
-                'slug'        => 'super_admin',
-                'name'        => 'Super Admin',
-                'description' => 'Memiliki hak akses penuh terhadap seluruh fitur dan konfigurasi sistem, termasuk manajemen pengguna, pengaturan, dan kontrol data secara menyeluruh.',
-                'is_system'   => true,
-            ],
-            [
-                'slug'        => 'tim_mutu',
-                'name'        => 'Tim Mutu',
-                'description' => 'Bertanggung jawab dalam pengelolaan, validasi, serta evaluasi indikator mutu rumah sakit untuk memastikan standar kualitas layanan terpenuhi.',
-                'is_system'   => true,
+                'profile' => [
+                    'slug' => 'super_admin',
+                    'name' => 'Super Admin',
+                    'description' => 'Memiliki hak akses penuh terhadap seluruh fitur dan konfigurasi sistem.',
+                    'is_system' => true,
+                ],
+                'apps' => [
+                    'siimut' => [
+                        [
+                            'slug' => 'super_admin',
+                            'name' => 'Super Admin',
+                            'description' => 'Hak penuh seluruh sistem',
+                        ],
+                    ],
+                ],
             ],
 
             [
-                'slug'        => 'validator_pic',
-                'name'        => 'Unit Kerja: PIC Indikator',
-                'description' => 'Berperan sebagai penanggung jawab indikator mutu pada unit kerja masing-masing, termasuk pemantauan, pelaporan, dan tindak lanjut capaian.',
-                'is_system'   => false,
+                'profile' => [
+                    'slug' => 'tim_mutu',
+                    'name' => 'Tim Mutu',
+                    'description' => 'Mengelola dan evaluasi indikator mutu rumah sakit.',
+                    'is_system' => true,
+                ],
+                'apps' => [
+                    'siimut' => [
+                        [
+                            'slug' => 'tim_mutu',
+                            'name' => 'Tim Mutu',
+                            'description' => 'Fokus pada indikator mutu',
+                        ],
+                    ],
+                ],
             ],
+
             [
-                'slug'        => 'pengumpul_data',
-                'name'        => 'Unit Kerja: Pengumpul Data',
-                'description' => 'Bertugas melakukan pengumpulan dan input data operasional sesuai indikator yang telah ditetapkan untuk mendukung proses evaluasi mutu.',
-                'is_system'   => false,
+                'profile' => [
+                    'slug' => 'validator_pic',
+                    'name' => 'Unit Kerja: PIC Indikator',
+                    'description' => 'Validasi dan monitoring indikator unit kerja.',
+                    'is_system' => false,
+                ],
+                'apps' => [
+                    'siimut' => [
+                        [
+                            'slug' => 'validator_pic',
+                            'name' => 'Validator PIC',
+                            'description' => 'Validasi data indikator',
+                        ],
+                    ],
+                ],
+            ],
+
+            [
+                'profile' => [
+                    'slug' => 'pengumpul_data',
+                    'name' => 'Unit Kerja: Pengumpul Data',
+                    'description' => 'Mengumpulkan dan input data operasional.',
+                    'is_system' => false,
+                ],
+                'apps' => [
+                    'siimut' => [
+                        [
+                            'slug' => 'pengumpul_data',
+                            'name' => 'Pengumpul Data',
+                            'description' => 'Input data indikator',
+                        ],
+                    ],
+                ],
             ],
         ];
 
-        foreach ($profiles as $profile) {
-            AccessProfile::updateOrCreate(
-                ['slug' => $profile['slug']],
+        /**
+         * 🔥 Prefetch (biar hemat query)
+         */
+        $applications = Application::pluck('id', 'app_key');
+        $roles = ApplicationRole::get()->groupBy('application_id');
+
+        foreach ($mappings as $map) {
+            /**
+             * ✅ Upsert Access Profile
+             */
+            $profileData = $map['profile'];
+
+            $profile = AccessProfile::updateOrCreate(
+                ['slug' => $profileData['slug']],
                 [
-                    'name'        => $profile['name'],
-                    'description' => $profile['description'],
-                    'is_system'   => $profile['is_system'],
+                    'name'        => $profileData['name'],
+                    'description' => $profileData['description'],
+                    'is_system'   => $profileData['is_system'],
                     'is_active'   => true,
                 ]
             );
+
+            $roleIds = [];
+
+            /**
+             * ✅ Loop Apps
+             */
+            foreach ($map['apps'] as $appKey => $roleConfigs) {
+                $appId = $applications[$appKey] ?? null;
+
+                if (! $appId) {
+                    $this->command->warn("⚠️ Application '{$appKey}' not found");
+                    continue;
+                }
+
+                $existingRoles = $roles->get($appId, collect());
+
+                /**
+                 * ✅ Loop Roles
+                 */
+                foreach ($roleConfigs as $roleData) {
+                    if (! is_array($roleData) || empty($roleData['slug'])) {
+                        $this->command->warn("⚠️ Invalid role config for app '{$appKey}': expected array with slug");
+                        continue;
+                    }
+
+                    $role = $existingRoles->firstWhere('slug', $roleData['slug']);
+
+                    if (! $role) {
+                        $role = ApplicationRole::create([
+                            'application_id' => $appId,
+                            'slug' => $roleData['slug'],
+                            'name' => $roleData['name'] ?? ucfirst(str_replace(['_', '-'], ' ', $roleData['slug'])),
+                            'description' => $roleData['description'] ?? 'Akses peran yang diatur oleh IAM',
+                            'is_system' => false,
+                        ]);
+
+                        // update cache (penting biar gak miss di loop berikutnya)
+                        if ($roles->has($appId)) {
+                            $roles[$appId]->push($role);
+                        } else {
+                            $roles[$appId] = collect([$role]);
+                        }
+
+                        $this->command->info("  ℹ️ Created role '{$roleData['slug']}' for app '{$appKey}'");
+                    }
+
+                    $roleIds[] = $role->id;
+                }
+            }
+
+            /**
+             * ✅ Sync Roles ke Profile
+             */
+            if (! empty($roleIds)) {
+                $profile->roles()->syncWithoutDetaching($roleIds);
+
+                $this->command->info(
+                    "  ✅ Profile '{$profile->slug}' synced (" . count($roleIds) . " roles)"
+                );
+            }
         }
-
-        // Mapping access profiles to application roles for clarity and maintainability.
-        // super_admin => semua admin,
-        // tim_mutu => tim_mutu di siimut,
-        // pic_indikator => role pic_indikator di siimut,
-        // pengumpul_data => role pengumpul_data di siimut + admin di apps lain jika diperlukan
-        // $mappings = [
-        //     'super_admin' => [
-        //         'siimut' => ['super_admin'],
-        //         'incident-report.app' => ['admin'],
-        //     ],
-        //     'tim_mutu' => [
-        //         'siimut' => ['tim_mutu'],
-        //     ],
-        //     'pic_indikator' => [
-        //         'siimut' => ['pic_indikator'],
-        //     ],
-        //     'pengumpul_data' => [
-        //         'siimut' => ['pengumpul_data'],
-        //         'other-app' => ['admin'], // contoh jika perlu
-        //     ],
-        //     'admin_app' => [
-        //         'client-example' => ['admin'],
-        //         'incident-report.app' => ['admin'],
-        //     ],
-        // ];
-
-        // foreach ($mappings as $profileSlug => $apps) {
-        //     $profile = AccessProfile::where('slug', $profileSlug)->first();
-
-        //     if (! $profile) {
-        //         $this->command->warn("⚠️  AccessProfile '{$profileSlug}' not found, skipping mapping.");
-
-        //         continue;
-        //     }
-
-        //     $roleIds = [];
-
-        //     foreach ($apps as $appKey => $roleSlugs) {
-        //         $application = Application::where('app_key', $appKey)->first();
-
-        //         if (! $application) {
-        //             $this->command->warn("⚠️  Application '{$appKey}' not found for mapping, skipping.");
-
-        //             continue;
-        //         }
-
-        //         foreach ($roleSlugs as $roleSlug) {
-        //             $role = ApplicationRole::where('application_id', $application->id)
-        //                 ->where('slug', $roleSlug)
-        //                 ->first();
-
-        //             if ($role) {
-        //                 $roleIds[] = $role->id;
-        //             } else {
-        //                 $this->command->warn("⚠️  Role '{$roleSlug}' for app '{$appKey}' not found while mapping.");
-        //             }
-        //         }
-        //     }
-
-        //     if (! empty($roleIds)) {
-        //         $profile->roles()->syncWithoutDetaching(array_unique($roleIds));
-        //         $this->command->info("  ✅ Mapped " . count($roleIds) . " role(s) to profile {$profile->name}");
-        //     }
-        // }
     }
 }

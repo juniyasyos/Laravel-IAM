@@ -73,10 +73,13 @@ class RolesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Action::make('syncRoles')
-                    ->label('Sync Roles')
+                    ->label(fn() => config('iam.role_sync_mode', 'pull') === 'push' ? 'Push Roles to Client' : 'Pull Roles from Client')
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
                     ->action(function (): void {
+                        $mode = config('iam.role_sync_mode', 'pull');
+                        $allowCreate = config('iam.role_sync_from_iam_allow_create', false);
+
                         $service = new ApplicationRoleSyncService();
                         $result = $service->syncRoles($this->getOwnerRecord());
 
@@ -90,6 +93,8 @@ class RolesRelationManager extends RelationManager
                         }
 
                         $message = $result['message'] . "\n\n";
+                        $message .= "Mode: {$mode} (create on client: " . ($allowCreate ? 'yes' : 'no') . ")\n";
+
                         $comparison = $result['comparison'];
                         $inSync = count($comparison['in_sync']);
                         $missing = count($comparison['missing_in_client']);
@@ -110,34 +115,34 @@ class RolesRelationManager extends RelationManager
                             ->success()
                             ->send();
                     }),
-                // CreateAction::make()
-                //     ->label('Create Role')
-                //     ->modalHeading('Create New Application Role')
-                //     ->schema([
-                //         TextInput::make('slug')
-                //             ->label('Role Slug')
-                //             ->required()
-                //             ->unique('iam_roles', 'slug', ignoreRecord: true)
-                //             ->alphaDash()
-                //             ->helperText('Lowercase letters, numbers, dashes and underscores only.'),
-                //         TextInput::make('name')
-                //             ->label('Role Name')
-                //             ->required()
-                //             ->maxLength(255),
-                //         Textarea::make('description')
-                //             ->label('Description')
-                //             ->rows(3)
-                //             ->maxLength(500)
-                //             ->columnSpanFull(),
-                //         Toggle::make('is_system')
-                //             ->label('System Role')
-                //             ->helperText('System roles are protected and cannot be deleted.')
-                //             ->default(false),
-                //     ])
-                //     ->mutateDataUsing(function (array $data): array {
-                //         $data['application_id'] = $this->getOwnerRecord()->id;
-                //         return $data;
-                //     }),
+                CreateAction::make()
+                    ->label('Create Role')
+                    ->modalHeading('Create New Application Role')
+                    ->schema([
+                        TextInput::make('slug')
+                            ->label('Role Slug')
+                            ->required()
+                            ->unique('iam_roles', 'slug', ignoreRecord: true)
+                            ->alphaDash()
+                            ->helperText('Lowercase letters, numbers, dashes and underscores only.'),
+                        TextInput::make('name')
+                            ->label('Role Name')
+                            ->required()
+                            ->maxLength(255),
+                        Textarea::make('description')
+                            ->label('Description')
+                            ->rows(3)
+                            ->maxLength(500)
+                            ->columnSpanFull(),
+                        Toggle::make('is_system')
+                            ->label('System Role')
+                            ->helperText('System roles are protected and cannot be deleted.')
+                            ->default(false),
+                    ])
+                    ->mutateDataUsing(function (array $data): array {
+                        $data['application_id'] = $this->getOwnerRecord()->id;
+                        return $data;
+                    }),
             ])
             ->recordActions([
                 EditAction::make()

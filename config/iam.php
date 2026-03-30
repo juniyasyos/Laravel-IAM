@@ -131,6 +131,36 @@ return [
     'protect_system_roles' => env('IAM_PROTECT_SYSTEM_ROLES', true),
 
     /*
+    |------------------------------------------------------------------------
+    | Role synchronization mode
+    |------------------------------------------------------------------------
+    |
+    | Mode determines direction of role sync between IAM and client.
+    | * pull: IAM pulls roles from client and updates IAM (default)
+    | * push: IAM pushes roles to client
+    */
+    'role_sync_mode' => env('IAM_ROLE_SYNC_MODE', 'push'),
+
+    /*
+    |------------------------------------------------------------------------
+    | Pull mode role creation policy
+    |------------------------------------------------------------------------
+    |
+    | If true, IAM creates roles that exist in client but not in IAM.
+    | If false, only existing roles are updated.
+    */
+    'role_sync_from_client_allow_create' => env('IAM_ROLE_SYNC_FROM_CLIENT_ALLOW_CREATE', false),
+
+    /*
+    |------------------------------------------------------------------------
+    | Push mode role policy
+    |------------------------------------------------------------------------
+    |
+    | In push mode, IAM sends roles to client; client decides if new role can be created.
+    */
+    'role_sync_from_iam_allow_create' => env('IAM_ROLE_SYNC_FROM_IAM_ALLOW_CREATE', false),
+
+    /*
     |--------------------------------------------------------------------------
     | User Response Fields
     |--------------------------------------------------------------------------
