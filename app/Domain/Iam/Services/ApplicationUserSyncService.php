@@ -254,9 +254,14 @@ class ApplicationUserSyncService
                     ->timeout(10)
                     ->get($syncUrl);
             } else {
-                // legacy hmac signature on empty body. Use per-application secret if set,
-                // otherwise fallback to global SSO secret.
-                $secret = $application->secret ?? config('sso.secret', env('SSO_SECRET', ''));
+                // legacy hmac signature on empty body.
+                // Prefer global SSO secret from IAM config (iam.sso_secret).
+                // Fall back to legacy sso.secret/env, then per-application secret hash.
+                $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', '')));
+                if (empty($secret)) {
+                    $secret = $application->secret;
+                }
+
                 if (empty($secret)) {
                     Log::warning('ApplicationUserSyncService backchannel cannot sign request: missing secret', [
                         'app_key' => $application->app_key,

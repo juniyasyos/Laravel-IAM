@@ -74,6 +74,9 @@ class ApplicationForm
                                                     ));
                                                 })
                                         ),
+
+                                   
+                                        
                                 ]),
 
                                 Toggle::make('enabled')

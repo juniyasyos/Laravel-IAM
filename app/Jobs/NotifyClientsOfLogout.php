@@ -71,7 +71,8 @@ class NotifyClientsOfLogout implements ShouldQueue
                 $client = $client->withToken($token);
             } else {
                 $body = json_encode($payload);
-                $signature = hash_hmac('sha256', $body, (string) config('sso.secret'));
+                $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', '')));
+                $signature = hash_hmac('sha256', $body, (string) $secret);
                 $sigHeader = config('sso.backchannel.signature_header', 'IAM-Signature');
                 $client = $client->withHeaders([$sigHeader => $signature]);
             }

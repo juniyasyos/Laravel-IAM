@@ -29,6 +29,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | SSO Shared Secret
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret used for backchannel HMAC verification with client apps.
+    | This should be configured the same in each client app (SSO_SECRET/iam.sso_secret).
+    |
+    */
+    'sso_secret' => env('IAM_SSO_SECRET', env('SSO_SECRET', env('APP_KEY'))),
+
+    /*
+    |--------------------------------------------------------------------------
     | JWT Signing Key
     |--------------------------------------------------------------------------
     |
