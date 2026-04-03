@@ -18,6 +18,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
+use App\Http\Middleware\AuthenticateFromJWT;
 
 class PanelPanelProvider extends PanelProvider
 {
@@ -67,6 +68,7 @@ class PanelPanelProvider extends PanelProvider
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
+                AuthenticateFromJWT::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])

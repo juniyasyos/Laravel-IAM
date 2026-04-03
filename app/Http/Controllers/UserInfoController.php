@@ -70,6 +70,10 @@ class UserInfoController extends Controller
 
         // Enrich applications with complete metadata
         $enrichedApps = collect($userData['applications'] ?? [])
+            ->filter(function ($app) {
+                // Only include enabled applications
+                return $app['enabled'] === true;
+            })
             ->map(function ($app) {
                 return array_merge($app, [
                     'roles_count' => count($app['roles'] ?? []),
@@ -119,6 +123,7 @@ class UserInfoController extends Controller
 
         // Fetch full app details including creation metadata
         $appDetails = Application::whereIn('app_key', $accessibleAppKeys)
+            ->where('enabled', true)
             ->get()
             ->map(function ($app) use ($userData, $user) {
                 // Find corresponding application data from userData

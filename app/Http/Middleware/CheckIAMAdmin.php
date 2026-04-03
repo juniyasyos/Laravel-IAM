@@ -20,24 +20,33 @@ class CheckIAMAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $path = $request->getPathInfo();
         $user = Auth::user();
 
         if (!$user) {
+            \Log::warning('[CheckIAMAdmin] NO USER | Path: ' . $path . ' | Redirecting to login');
             return redirect()->route('login');
         }
 
+        \Log::info('[CheckIAMAdmin] USER EXISTS | NIP: ' . $user->nip . ' | Path: ' . $path);
+
         // Check access based on config
         if (!$this->checkAccess($user)) {
+            \Log::warning('[CheckIAMAdmin] ACCESS DENIED | NIP: ' . $user->nip . ' | Path: ' . $path . ' | User is NOT IAM admin');
+
             $message = config('iam.admin_access.denied_message', 'Access denied.');
             $redirect = config('iam.admin_access.denied_redirect');
 
             if ($redirect) {
+                \Log::info('[CheckIAMAdmin] REDIRECTING TO: ' . $redirect);
                 return redirect($redirect)->with('error', $message);
             }
 
+            \Log::info('[CheckIAMAdmin] ABORTING WITH 403');
             abort(403, $message);
         }
 
+        \Log::info('[CheckIAMAdmin] ACCESS GRANTED | NIP: ' . $user->nip . ' | Path: ' . $path . ' | User is IAM admin');
         return $next($request);
     }
 
@@ -52,19 +61,27 @@ class CheckIAMAdmin
         $rules = config('iam.admin_access.rules', []);
 
         if (empty($rules)) {
+            \Log::debug('[CheckIAMAdmin::checkAccess] NO RULES configured | User: ' . $user->nip);
             return false;
         }
 
         $operator = config('iam.admin_access.operator', 'or'); // 'and' or 'or'
 
         $results = [];
-        foreach ($rules as $rule) {
-            $results[] = $this->evaluateRule($user, $rule);
+        foreach ($rules as $index => $rule) {
+            $result = $this->evaluateRule($user, $rule);
+            $results[] = $result;
+            $ruleType = $rule['type'] ?? 'unknown';
+            \Log::debug('[CheckIAMAdmin::checkAccess] Rule [' . $index . '] type=' . $ruleType . ' | Result: ' . ($result ? 'PASS' : 'FAIL'));
         }
 
-        return $operator === 'and'
+        $finalResult = $operator === 'and'
             ? !in_array(false, $results, true)
             : in_array(true, $results, true);
+
+        \Log::debug('[CheckIAMAdmin::checkAccess] Operator: ' . $operator . ' | Final result: ' . ($finalResult ? 'ALLOWED' : 'DENIED'));
+
+        return $finalResult;
     }
 
     /**

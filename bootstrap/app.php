@@ -36,7 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
-        $middleware->web(append: [
+        $middleware->web(prepend: [
+            \App\Http\Middleware\DebugRequestFlow::class,
+        ], append: [
+            \App\Http\Middleware\AuthenticateFromJWT::class,
             RedirectToFrontend::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,

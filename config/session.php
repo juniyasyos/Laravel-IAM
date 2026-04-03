@@ -129,7 +129,7 @@ return [
 
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
+        Str::slug(env('APP_NAME', 'laravel'), '_') . '_session'
     ),
 
     /*
@@ -151,12 +151,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | This value determines the domain and subdomains the session cookie is
-    | available to. By default, the cookie will be available to the root
-    | domain and all subdomains. Typically, this shouldn't be changed.
+    | available to. For localhost development, setting to 'localhost' allows
+    | cookies to work across different ports. In production, use actual domain.
+    |
+    | For development: SESSION_DOMAIN=localhost
+    | For production: SESSION_DOMAIN=yourdomain.com
     |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => env('SESSION_DOMAIN', 'localhost'),
 
     /*
     |--------------------------------------------------------------------------

@@ -12,11 +12,15 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        if (! $request->expectsJson()) {
+        $path = $request->getPathInfo();
+        $isJson = $request->expectsJson();
+
+        if (! $isJson) {
+            \Log::warning('[Authenticate] UNAUTHENTICATED USER | Path: ' . $path . ' | Redirecting to login');
             return route('login');
         }
 
+        \Log::info('[Authenticate] UNAUTHENTICATED JSON REQUEST | Path: ' . $path . ' | Allowing (JSON)');
         return null;
     }
 }
-

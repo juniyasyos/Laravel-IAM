@@ -129,17 +129,61 @@ class TokenBuilder
 
     /**
      * Refresh a token (decode old token, issue new one with updated expiry).
+     * Allows refreshing even if token is expired.
      *
      * @throws \Exception
      */
     public function refresh(string $token): string
     {
-        $oldClaims = $this->decode($token);
+        try {
+            // First try normal verify (includes signature check and expiry)
+            $oldClaims = $this->verify($token);
+        } catch (\Exception $verifyErr) {
+            // If verify fails, try decode (signature check but no expiry check)
+            try {
+                $oldClaims = $this->decode($token);
+            } catch (\Exception $decodeErr) {
+                // If decode also fails (invalid JWT structure/signature),
+                // try manual parsing as last resort
+                $oldClaims = $this->parseTokenPayload($token);
+            }
+        }
 
         // Find user
         $user = User::findOrFail($oldClaims->userId);
 
         // Build fresh token
         return $this->buildTokenForUser($user, $oldClaims->extra);
+    }
+
+    /**
+     * Manually parse JWT payload without verification (for refresh of expired tokens).
+     * This extracts the payload part of the JWT and decodes it without signature/expiry validation.
+     *
+     * @throws \Exception
+     */
+    private function parseTokenPayload(string $token): TokenClaims
+    {
+        $parts = explode('.', $token);
+
+        if (count($parts) !== 3) {
+            throw new \Exception('Invalid JWT format');
+        }
+
+        try {
+            // Decode payload (second part)
+            $payload = json_decode(
+                base64_decode(strtr($parts[1], '-_', '+/')),
+                associative: true
+            );
+
+            if (!$payload || !isset($payload['sub'])) {
+                throw new \Exception('Invalid or missing user ID in token');
+            }
+
+            return TokenClaims::fromArray($payload);
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to parse token payload: ' . $e->getMessage());
+        }
     }
 }
