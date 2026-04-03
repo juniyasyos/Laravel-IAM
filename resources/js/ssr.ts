@@ -1,19 +1,19 @@
-import { createInertiaApp } from '@inertiajs/vue3';
-import createServer from '@inertiajs/vue3/server';
+import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { createSSRApp, DefineComponent, h } from 'vue';
-import { renderToString } from 'vue/server-renderer';
+import ReactDOMServer from 'react-dom/server';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'IAM';
 
-createServer(
-    (page) =>
-        createInertiaApp({
-            page,
-            render: renderToString,
-            title: (title) => (title ? `${title} - ${appName}` : appName),
-            resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')),
-            setup: ({ App, props, plugin }) => createSSRApp({ render: () => h(App, props) }).use(plugin),
-        }),
-    { cluster: true },
-);
+export default function render(page: any) {
+    return createInertiaApp({
+        page,
+        render: ReactDOMServer.renderToString,
+        resolve: (name) =>
+            resolvePageComponent(
+                `./pages/${name}.tsx`,
+                import.meta.glob<{ default: React.ComponentType }>('./pages/**/*.tsx'),
+            ),
+        setup: ({ App, props }) => <App { ...props } />,
+        title: (title) => `${title} - ${appName}`,
+    });
+}

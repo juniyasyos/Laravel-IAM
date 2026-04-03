@@ -4,9 +4,9 @@ return [
     // Navigation & General Labels
     'navigation' => [
         'group' => 'IAM Management',
-        'title' => 'Work Units',
-        'plural' => 'Work Units',
-        'description' => 'Manage work units in the system efficiently.',
+        'title' => 'Departements',
+        'plural' => 'Departements',
+        'description' => 'Manage Departements in the system efficiently.',
     ],
 
     // Columns/Field Labels

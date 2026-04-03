@@ -1,5 +1,5 @@
-import { InertiaLinkProps } from '@inertiajs/vue3';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { LucideIcon } from 'lucide-react';
+import type { LinkProps } from '@inertiajs/react';
 
 export interface Auth {
     user: User;
@@ -12,7 +12,7 @@ export interface BreadcrumbItem {
 
 export interface NavItem {
     title: string;
-    href: NonNullable<InertiaLinkProps['href']>;
+    href: NonNullable<LinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;
 }

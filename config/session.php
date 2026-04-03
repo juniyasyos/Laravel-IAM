@@ -151,15 +151,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | This value determines the domain and subdomains the session cookie is
-    | available to. For localhost development, setting to 'localhost' allows
-    | cookies to work across different ports. In production, use actual domain.
-    |
-    | For development: SESSION_DOMAIN=localhost
-    | For production: SESSION_DOMAIN=yourdomain.com
+    | available to. Keep it null in local development so cookies bind to the
+    | current host (for example localhost or 127.0.0.1) and avoid 419 errors
+    | caused by host mismatch.
     |
     */
 
-    'domain' => env('SESSION_DOMAIN', 'localhost'),
+    'domain' => env('SESSION_DOMAIN'),
 
     /*
     |--------------------------------------------------------------------------

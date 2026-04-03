@@ -40,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\DebugRequestFlow::class,
         ], append: [
             \App\Http\Middleware\AuthenticateFromJWT::class,
-            RedirectToFrontend::class,
+            // RedirectToFrontend::class, // Disabled - now using React + Inertia integrated in Laravel
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

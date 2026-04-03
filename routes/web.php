@@ -1,23 +1,21 @@
 <?php
 
 use App\Http\Controllers\UserInfoController;
-use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Redirect;
 
-// Main welcome page with Blade
-Route::get('/', [WelcomeController::class, 'index'])->name('home');
+// Root route - redirect based on auth status
+Route::get('/', function () {
+    return auth()->check()
+        ? Redirect::to('/dashboard')
+        : Redirect::to('/login');
+})->name('home');
 
-// Alternative Inertia welcome page (if needed)
-Route::get('/vue-welcome', function () {
-    return Inertia::render('Welcome');
-})->name('vue.welcome');
-
-// Vue dashboard routes are disabled - using Filament panel as main dashboard
-// Route::redirect('dashboard', 'vue/dashboard')->middleware(['auth', 'verified']);
-// Route::get('vue/dashboard', function () {
-//     return Inertia::render('Dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
+        ->name('dashboard');
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
@@ -29,7 +27,7 @@ if (is_array($ssoRoutes) && isset($ssoRoutes['web']) && is_callable($ssoRoutes['
 }
 
 if (app()->environment('testing')) {
-    require __DIR__ . '/testing.php'; 
+    require __DIR__ . '/testing.php';
 }
 
 Route::middleware('auth')

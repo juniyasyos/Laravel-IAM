@@ -1,0 +1,29 @@
+@import 'tailwindcss' source(none);
+@source '../**/*.{js,ts,jsx,tsx}';
+
+@import 'tw-animate-css';
+
+:root {
+    --app-zoom: 0.8;
+}
+
+html,
+body,
+#app {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    zoom: var(--app-zoom);
+}
+
+@supports not (zoom: 1) {
+    body {
+        transform: scale(var(--app-zoom));
+        transform-origin: top left;
+        width: calc(100% / var(--app-zoom));
+    }
+}

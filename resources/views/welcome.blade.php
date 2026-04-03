@@ -273,7 +273,7 @@
                                     @endauth
                                 </div>
                             </article>
-                            @endforeach
+                            @endforeachk
                         </div>
 
                         @guest

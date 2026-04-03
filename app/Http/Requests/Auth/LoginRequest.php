@@ -11,6 +11,15 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('nip') && $this->filled('email')) {
+            $this->merge([
+                'nip' => $this->input('email'),
+            ]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
