@@ -45,7 +45,7 @@ export interface Application {
     id: string;
     name: string;
     description?: string;
-    status?: 'Siapro' | 'Beta' | 'Ready' | 'Offline';
+    status?: 'Siapro' | 'Beta' | 'Ready' | 'Offline' | 'Siap Diakses' | 'Dalam Pengembangan';
     url?: string;
     access?: string;
     notifications?: number;

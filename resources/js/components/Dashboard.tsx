@@ -34,6 +34,104 @@ interface ApplicationWithIcon extends Application {
   icon: React.ElementType;
   gradient: string;
   isOnline: boolean;
+  userRole?: string;
+}
+
+// Modal Content Component - Shared between Desktop and Mobile
+function ModalContent({ user, nip, role, logout, onClose, isMobile = false }: {
+  user: UserType;
+  nip: string;
+  role: string;
+  logout: () => void;
+  onClose: () => void;
+  isMobile?: boolean;
+}) {
+  return (
+    <>
+      {/* Modal Header */}
+      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-t-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white">Info Akun</h2>
+          <button 
+            onClick={onClose}
+            className="text-white/80 hover:text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg">
+            <User className="w-8 h-8 text-white" />
+          </div>
+          <div className="text-white">
+            <p className="text-lg font-semibold">{user?.name || 'User'}</p>
+            <p className="text-sm text-white/80">{role}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Content */}
+      <div className={`p-6 space-y-5 ${isMobile ? 'flex-1 overflow-y-auto' : ''}`}>
+        {/* NIP */}
+        <div>
+          <label className="block text-sm text-gray-600 mb-2">NIP</label>
+          <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 font-medium">
+            {nip}
+          </div>
+        </div>
+
+        {/* Access Profiles Section */}
+        {user?.access_profiles && user.access_profiles.length > 0 && (
+          <div className="border-t pt-5">
+            <h3 className="text-sm font-bold text-gray-900 mb-3">Profil Akses</h3>
+            <div className="space-y-3">
+              {user.access_profiles.map((profile) => (
+                <div key={profile.id} className="bg-blue-50/50 border border-blue-100 rounded-lg p-3">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-1">{profile.name}</h4>
+                  <p className="text-xs text-gray-600 mb-2">{profile.description}</p>
+                  {profile.roles && profile.roles.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {profile.roles.map((role, idx) => (
+                        <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+                          {role.role_name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="border-t pt-5 space-y-3">
+          <button 
+            onClick={() => {
+              try {
+                ssoService.redirectToAdminPanel();
+              } catch (error) {
+                console.error('Failed to access admin panel:', error);
+                alert('Gagal mengakses Admin Panel. Silakan coba lagi.');
+              }
+            }}
+            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            <Settings className="w-5 h-5" />
+            Admin Panel
+          </button>
+
+          <button 
+            onClick={logout}
+            className="w-full bg-white border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:scale-105 active:scale-95"
+          >
+            <LogOut className="w-5 h-5" />
+            Keluar
+          </button>
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default function Dashboard({ user, applications: appsFromProps = [] }: DashboardProps) {
@@ -67,9 +165,13 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
             gradient: 'from-gray-500 to-gray-600' 
           };
 
-          // Status based on enabled flag
-          const appStatus: 'Ready' | 'Beta' = app.enabled ? 'Ready' : 'Beta';
+          // Status based on enabled flag - simplified to single status
+          const appStatus: 'Siap Diakses' | 'Dalam Pengembangan' = app.enabled ? 'Siap Diakses' : 'Dalam Pengembangan';
           const isOnline = app.enabled;
+
+          // Get user role in this application
+          const userAppData = user?.applications?.find((ua: UserApplication) => ua.app_key === app.app_key);
+          const userRole = userAppData?.roles?.[0]?.name || undefined;
 
           return {
             id: app.app_key,
@@ -77,11 +179,11 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
             description: app.description || '',
             status: appStatus,
             url: app.app_url || `/${app.app_key}`,
-            access: app.enabled ? 'Available' : 'Unavailable',
             notifications: 0,
             icon: config.icon,
             gradient: config.gradient,
             isOnline: isOnline,
+            userRole: userRole,
           };
         });
 
@@ -96,7 +198,7 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
     };
 
     processApplications();
-  }, [appsFromProps, appConfig]);
+  }, [appsFromProps, user, appConfig]);
 
   // Placeholder for role and nip, will be fetched from user data
   const role = user?.role || 'Pengguna Sistem';
@@ -116,163 +218,23 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-teal-300/20 to-emerald-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '15s', animationDelay: '3s' }} />
       </div>
 
-      {/* User Info Modal - Desktop Popup / Mobile Sidebar */}
+      {/* User Info Modal */}
       {showInfoModal && (
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={() => setShowInfoModal(false)} />
           
-          {/* Desktop Popup */}
+          {/* Modal - Desktop Popup */}
           <div className="fixed top-20 right-4 md:right-8 z-50 hidden md:block">
             <div className="bg-white rounded-2xl shadow-2xl w-96 animate-slideDown" onClick={(e) => e.stopPropagation()}>
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-t-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-white">Info Akun</h2>
-                  <button 
-                    onClick={() => setShowInfoModal(false)}
-                    className="text-white/80 hover:text-white transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg">
-                    <User className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="text-white">
-                    <p className="text-lg font-semibold">{user?.name || 'User'}</p>
-                    <p className="text-sm text-white/80">{role}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Username</label>
-                  <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 font-medium">
-                    {user?.name || 'User'}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">NIP</label>
-                  <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900">
-                    {nip}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Role</label>
-                  <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 flex items-center justify-between">
-                    <span>{role}</span>
-                    <span className="bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-medium">Active</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 space-y-3">
-                  <button 
-                    onClick={() => {
-                      try {
-                        ssoService.redirectToAdminPanel();
-                      } catch (error) {
-                        console.error('Failed to access admin panel:', error);
-                        alert('Gagal mengakses Admin Panel. Silakan coba lagi.');
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-                  >
-                    <Settings className="w-5 h-5" />
-                    Admin Panel
-                  </button>
-
-                  <button 
-                    onClick={logout}
-                    className="w-full bg-white border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:scale-105 active:scale-95"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Keluar
-                  </button>
-                </div>
-              </div>
+              <ModalContent user={user} nip={nip} role={role} logout={logout} onClose={() => setShowInfoModal(false)} />
             </div>
           </div>
 
-          {/* Mobile Sidebar */}
+          {/* Modal - Mobile Sidebar */}
           <div className="fixed top-0 right-0 h-full z-50 md:hidden w-96 max-w-[100vw] animate-slideLeft" onClick={(e) => e.stopPropagation()}>
             <div className="bg-white h-full shadow-2xl flex flex-col">
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-white">Info Akun</h2>
-                  <button 
-                    onClick={() => setShowInfoModal(false)}
-                    className="text-white/80 hover:text-white transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg">
-                    <User className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="text-white">
-                    <p className="text-lg font-semibold">{user?.name || 'User'}</p>
-                    <p className="text-sm text-white/80">{role}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Username</label>
-                  <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 font-medium">
-                    {user?.name || 'User'}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">NIP</label>
-                  <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900">
-                    {nip}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Role</label>
-                  <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 flex items-center justify-between">
-                    <span>{role}</span>
-                    <span className="bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-medium">Active</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 space-y-3">
-                  <button 
-                    onClick={() => {
-                      try {
-                        ssoService.redirectToAdminPanel();
-                      } catch (error) {
-                        console.error('Failed to access admin panel:', error);
-                        alert('Gagal mengakses Admin Panel. Silakan coba lagi.');
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-                  >
-                    <Settings className="w-5 h-5" />
-                    Admin Panel
-                  </button>
-
-                  <button 
-                    onClick={logout}
-                    className="w-full bg-white border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:scale-105 active:scale-95"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Keluar
-                  </button>
-                </div>
-              </div>
+              <ModalContent user={user} nip={nip} role={role} logout={logout} onClose={() => setShowInfoModal(false)} isMobile />
             </div>
           </div>
         </>
@@ -306,18 +268,17 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 active:scale-95">
               <User className="w-6 h-6 text-white" />
             </div>
-            {/* Notification indicator */}
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>
+
           </button>
         </div>
 
         {/* Welcome Text */}
         <div className="mb-8" style={{ animation: 'fadeIn 0.8s ease-out 0.2s forwards', opacity: 0 }}>
-          <p className="text-gray-600 text-sm md:text-base mb-2">SELAMAT DATANG, {user?.name?.toUpperCase() || 'USER'}</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+          <p className="text-gray-600 text-xs md:text-sm mb-2">SELAMAT DATANG, {user?.name?.toUpperCase() || 'USER'}</p>
+          <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-3">
             Satu pintu untuk semua <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">aplikasi layanan.</span>
           </h2>
-          <p className="text-gray-600 text-base md:text-lg">
+          <p className="text-gray-600 text-sm md:text-lg">
             Masuk sekali, lalu akses seluruh aplikasi operasional rumah sakit dengan aman: mutu, insiden, dokumen, hingga analitik manajemen.
           </p>
         </div>
@@ -353,7 +314,7 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
                           disabled={!app.isOnline}
                           className="relative cursor-pointer group w-full text-left h-full disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          <div className={`bg-white/70 backdrop-blur-md rounded-2xl p-5 md:p-6 shadow-lg hover:shadow-2xl border border-blue-100/50 transition-all duration-300 h-full relative overflow-hidden ${!app.isOnline ? 'opacity-75' : 'hover:scale-105 active:scale-95'}`}>
+                          <div className={`bg-white/70 backdrop-blur-md rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg hover:shadow-2xl border border-blue-100/50 transition-all duration-300 h-full relative overflow-hidden ${!app.isOnline ? 'opacity-75' : 'hover:scale-105 active:scale-95'}`}>
                             {/* Gradient overlay on hover */}
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-cyan-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
 
@@ -364,55 +325,45 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
                               </div>
                             )}
 
-                            {/* Notification Badge */}
 
-                              <div className="absolute top-3 right-3 z-20">
-                                <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shadow-lg">
-                                  {app.notifications > 99 ? '99+' : app.notifications}
-                                </div>
-                              </div>
 
                             {/* Icon */}
-                            <div className={`inline-flex p-3.5 rounded-xl bg-gradient-to-br ${app.gradient} text-white shadow-lg mb-4 relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                              <Icon className="w-8 h-8" />
+                            <div className={`inline-flex p-3 sm:p-3.5 rounded-xl bg-gradient-to-br ${app.gradient} text-white shadow-lg mb-3 sm:mb-4 relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+                              <Icon className="w-6 sm:w-8 h-6 sm:h-8" />
                               <div className={`absolute inset-0 bg-gradient-to-br ${app.gradient} rounded-xl blur-md opacity-50 -z-10`}></div>
                             </div>
 
                             {/* Content */}
                             <div className="mb-4 relative z-10">
-                              <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug group-hover:text-blue-600 transition-colors">
+                              <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 mb-2 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                                 {app.name}
                               </h3>
-                              <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
                                 {app.description}
                               </p>
                               
-                              {/* Status and Access Info */}
-                              <div className="space-y-1.5 flex flex-wrap gap-2 items-center">
-                                {/* Status Badge */}
+                              {/* Status Badge and User Role */}
+                              <div className="space-y-2">
+                                {/* Status Badge - Simplified */}
                                 {app.status && (
                                   <div className="flex items-center gap-2">
-                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${
-                                      app.status === 'Ready' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
-                                      app.status === 'Beta' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                      'bg-red-100 text-red-700 border border-red-200'
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 flex-shrink-0 ${
+                                      app.status === 'Siap Diakses' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                      'bg-amber-100 text-amber-700 border border-amber-200'
                                     }`}>
-                                      {app.status === 'Offline' && (
-                                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                                      )}
-                                      {(app.status === 'Ready' || app.status === 'Beta') && (
-                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                                      )}
+                                      <span className={`w-1.5 h-1.5 rounded-full ${
+                                        app.status === 'Siap Diakses' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+                                      }`} />
                                       {app.status}
                                     </span>
                                   </div>
                                 )}
                                 
-                                {/* Access Badge */}
-                                {app.access && app.access !== 'Unavailable' && (
+                                {/* User Role in Application */}
+                                {app.userRole && (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs border border-blue-200 text-blue-700 bg-blue-50/80 backdrop-blur-sm px-2 py-1 rounded">
-                                      {app.access}
+                                    <span className="text-xs text-blue-700 bg-blue-50/80 border border-blue-200 px-2.5 py-1 rounded-full font-medium flex-shrink-0">
+                                      👤 {app.userRole}
                                     </span>
                                   </div>
                                 )}
