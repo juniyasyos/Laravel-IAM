@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Iam\Services\TokenBuilder;
 use App\Models\User;
-use App\Services\Sso\TokenService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 class VerifySsoJwtApi
 {
     public function __construct(
-        private readonly TokenService $tokenService
+        private readonly TokenBuilder $tokenBuilder
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -25,7 +25,9 @@ class VerifySsoJwtApi
         }
 
         try {
-            $payload = $this->tokenService->verify($token);
+            // Use TokenBuilder which uses Firebase\JWT - consistent with token issuance
+            $claims = $this->tokenBuilder->verify($token);
+            $payload = $claims->toPayload();
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'Unauthenticated: invalid or expired SSO token.',

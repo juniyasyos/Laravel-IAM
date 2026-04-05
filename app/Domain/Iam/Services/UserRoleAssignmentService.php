@@ -162,10 +162,34 @@ class UserRoleAssignmentService
             ->whereIn('slug', $roleSlugs)
             ->get();
 
+        $foundRoleSlugs = $roles->pluck('slug')->toArray();
+        $missingRoleSlugs = array_diff($roleSlugs, $foundRoleSlugs);
+
+        // Log slug validation
+        \Illuminate\Support\Facades\Log::info('user_sync_slug_validation', [
+            'application_id' => $app->id,
+            'app_key' => $app->app_key,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_nip' => $user->nip,
+            'requested_slugs' => $roleSlugs,
+            'found_slugs' => $foundRoleSlugs,
+            'missing_slugs' => array_values($missingRoleSlugs),
+            'total_requested' => count($roleSlugs),
+            'total_found' => count($foundRoleSlugs),
+            'validation_passed' => empty($missingRoleSlugs),
+        ]);
+
         if ($roles->count() !== count($roleSlugs)) {
-            $found = $roles->pluck('slug')->toArray();
-            $missing = array_diff($roleSlugs, $found);
-            throw new \Exception('Invalid role slugs: ' . implode(', ', $missing));
+            \Illuminate\Support\Facades\Log::error('user_sync_slug_validation_failed', [
+                'application_id' => $app->id,
+                'app_key' => $app->app_key,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_nip' => $user->nip,
+                'missing_slugs' => array_values($missingRoleSlugs),
+            ]);
+            throw new \Exception('Invalid role slugs: ' . implode(', ', $missingRoleSlugs));
         }
 
         // find all profiles that either contain one of the requested roles, or
@@ -233,6 +257,43 @@ class UserRoleAssignmentService
         // for any slug that isn't covered yet, do not create new profiles.
         // Only update existing profiles if possible.
         $missingSlugs = array_diff($roleSlugs, $coveredSlugs);
+
+        // Log access profile matching
+        $profileDetails = $existingProfiles->map(function ($p) {
+            return [
+                'profile_id' => $p->id,
+                'profile_slug' => $p->slug,
+                'profile_name' => $p->name,
+                'role_slugs' => $p->roles->pluck('slug')->toArray(),
+            ];
+        })->values()->toArray();
+
+        \Illuminate\Support\Facades\Log::info('user_sync_profile_matching', [
+            'application_id' => $app->id,
+            'app_key' => $app->app_key,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_nip' => $user->nip,
+            'requested_role_slugs' => $roleSlugs,
+            'found_profiles' => $profileDetails,
+            'covered_role_slugs' => $coveredSlugs,
+            'missing_role_slugs' => array_values($missingSlugs),
+            'profile_count_found' => count($profileIds),
+            'allowed_profile_ids' => $this->allowedProfileIds ?: 'none',
+        ]);
+
+        if (! empty($missingSlugs)) {
+            \Illuminate\Support\Facades\Log::warning('user_sync_missing_role_coverage', [
+                'application_id' => $app->id,
+                'app_key' => $app->app_key,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_nip' => $user->nip,
+                'missing_slugs' => array_values($missingSlugs),
+                'note' => 'These role slugs are not covered by any access profile. Create access profiles or link them to existing profiles.',
+            ]);
+        }
+
         if (! empty($missingSlugs) && empty($this->allowedProfileIds)) {
             foreach ($missingSlugs as $slug) {
                 $role = \App\Domain\Iam\Models\ApplicationRole::where('application_id', $app->id)
@@ -246,6 +307,18 @@ class UserRoleAssignmentService
                 // Ensure each role has a corresponding profile with same slug
                 $profile = $this->ensureProfileForRole($role);
                 $profileIds[] = $profile->id;
+
+                \Illuminate\Support\Facades\Log::info('user_sync_auto_created_profile', [
+                    'application_id' => $app->id,
+                    'app_key' => $app->app_key,
+                    'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'user_nip' => $user->nip,
+                    'role_slug' => $slug,
+                    'profile_id' => $profile->id,
+                    'profile_slug' => $profile->slug,
+                    'profile_name' => $profile->name,
+                ]);
             }
         }
 
@@ -263,8 +336,40 @@ class UserRoleAssignmentService
 
         // attach only profiles that are not already present
         $toAdd = array_diff($profileIds, $currentProfileIds);
+
+        \Illuminate\Support\Facades\Log::info('user_sync_profile_attachment', [
+            'application_id' => $app->id,
+            'app_key' => $app->app_key,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_nip' => $user->nip,
+            'all_profiles_to_attach' => $profileIds,
+            'current_profile_ids' => $currentProfileIds,
+            'new_profiles_to_attach' => array_values($toAdd),
+            'attachment_count' => count($toAdd),
+        ]);
+
         if (! empty($toAdd)) {
             $user->accessProfiles()->attach($toAdd, ['assigned_by' => $assignedBy?->id]);
+
+            \Illuminate\Support\Facades\Log::info('user_sync_profile_attached_success', [
+                'application_id' => $app->id,
+                'app_key' => $app->app_key,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_nip' => $user->nip,
+                'attached_profile_ids' => array_values($toAdd),
+                'attached_count' => count($toAdd),
+            ]);
+        } else {
+            \Illuminate\Support\Facades\Log::info('user_sync_no_new_profiles', [
+                'application_id' => $app->id,
+                'app_key' => $app->app_key,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_nip' => $user->nip,
+                'message' => 'User already has all required profiles',
+            ]);
         }
     }
 

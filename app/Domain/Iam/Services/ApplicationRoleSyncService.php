@@ -110,6 +110,13 @@ class ApplicationRoleSyncService
                     ->get($syncUrl);
             } else {
                 $secret = config('sso.secret', env('SSO_SECRET', ''));
+
+                // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+                if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+                    $decoded = base64_decode(substr($secret, 7), true);
+                    $secret = $decoded !== false ? $decoded : $secret;
+                }
+
                 $signature = hash_hmac('sha256', '', $secret);
                 $header = config('sso.backchannel.signature_header', 'IAM-Signature');
 
@@ -186,6 +193,13 @@ class ApplicationRoleSyncService
                 // fallback to old sso.secret + env (backward compatibility),
                 // then fallback to per-app secret hash.
                 $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+
+                // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+                if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+                    $decoded = base64_decode(substr($secret, 7), true);
+                    $secret = $decoded !== false ? $decoded : $secret;
+                }
+
                 $signature = hash_hmac('sha256', $jsonBody, $secret);
                 $header = config('sso.backchannel.signature_header', 'IAM-Signature');
 

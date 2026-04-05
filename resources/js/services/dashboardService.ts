@@ -25,7 +25,11 @@ export interface ApplicationsApiResponse {
 
 export const dashboardService = {
     async getApplications(): Promise<ApplicationResponse[]> {
+        // console.log('🌐 [DashboardService-Inertia] Making API call to /api/users/applications');
         const response = await api.get<ApplicationsApiResponse>('/api/users/applications');
+        // console.log('🌐 [DashboardService-Inertia] Full API response:', response.data);
+        // console.log('🌐 [DashboardService-Inertia] Applications:', response.data.applicatiokns);
+        // console.log('🌐 [DashboardService-Inertia] Total accessible apps:', response.data.total_accessible_apps);
         return response.data.applications;
     },
 };

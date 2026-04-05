@@ -170,6 +170,7 @@ class ApplicationsTable
                         ->label('Sync Users')
                         ->icon('heroicon-o-user-group')
                         ->color('primary')
+                        ->authorize(fn() => false)
                         ->action(function (Application $record): void {
                             // gather all access profiles that reference roles from this
                             // specific application and send their ids to the job. this

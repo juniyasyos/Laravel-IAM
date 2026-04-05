@@ -24,6 +24,7 @@ class ListUsers extends ListRecords
                 ->label('Sinkron pengguna (pilih aplikasi + role bundle)')
                 ->icon('heroicon-m-arrow-path')
                 ->color('primary')
+                ->authorize(fn() => false)
                 ->schema([
                     \Filament\Forms\Components\CheckboxList::make('application_ids')
                         ->label('Aplikasi')
@@ -65,13 +66,7 @@ class ListUsers extends ListRecords
                             ->send();
                         return;
                     }
-
-                    dd([
-                        'application_ids' => $applicationIds,
-                        'profile_ids' => $profileIds,
-                        'sync_mode' => $data['sync_mode'] ?? 'auto',
-                    ]);
-
+                    
                     SyncApplicationUsers::dispatch($applicationIds, $profileIds);
 
                     Notification::make()

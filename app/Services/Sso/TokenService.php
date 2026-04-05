@@ -351,6 +351,14 @@ class TokenService
             throw new RuntimeException('SSO secret is not configured.');
         }
 
+        // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+        if (str_starts_with($secret, 'base64:')) {
+            $secret = base64_decode(substr($secret, 7), true);
+            if ($secret === false) {
+                throw new RuntimeException('Invalid base64-encoded SSO secret.');
+            }
+        }
+
         return $secret;
     }
 

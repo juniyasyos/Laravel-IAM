@@ -170,7 +170,7 @@ return [
     | * pull: IAM pulls roles from client and updates IAM (default)
     | * push: IAM pushes roles to client
     */
-    'role_sync_mode' => env('IAM_ROLE_SYNC_MODE', 'pull'),
+    'role_sync_mode' => env('IAM_ROLE_SYNC_MODE', 'push'),
 
     /*
     |------------------------------------------------------------------------

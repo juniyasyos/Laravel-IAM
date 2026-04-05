@@ -160,15 +160,32 @@ class ApplicationUserSyncService
                 $roleSlugs = $cUser['roles'] ?? [];
             }
 
+            // Log role slugs received from client
+            Log::info('user_sync_role_slugs_from_client', [
+                'application_id' => $application->id,
+                'app_key' => $application->app_key,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_nip' => $user->nip,
+                'client_role_slugs' => $roleSlugs,
+                'sync_mode' => $this->syncMode,
+                'allowed_profile_ids' => $this->allowedProfileIds ?: 'none',
+            ]);
+
             try {
                 $assignmentService->syncProfilesForUserAndApp($user, $application, $roleSlugs);
                 $assignmentService->syncProfilesFromExistingAppRoles($user, $application);
             } catch (\Exception $e) {
-                Log::warning('user_role_sync_failed', [
+                Log::error('user_role_sync_failed', [
                     'application_id' => $application->id,
+                    'app_key' => $application->app_key,
                     'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'user_nip' => $user->nip,
                     'error' => $e->getMessage(),
-                    'roles' => $roleSlugs,
+                    'client_roles' => $roleSlugs,
+                    'sync_mode' => $this->syncMode,
+                    'allowed_profile_ids' => $this->allowedProfileIds ?: 'none',
                 ]);
             }
         }
@@ -328,6 +345,12 @@ class ApplicationUserSyncService
                     ];
                 }
 
+                // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+                if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+                    $decoded = base64_decode(substr($secret, 7), true);
+                    $secret = $decoded !== false ? $decoded : $secret;
+                }
+
                 $signature = hash_hmac('sha256', '', $secret);
                 $header = config('sso.backchannel.signature_header', 'IAM-Signature');
 
@@ -360,6 +383,22 @@ class ApplicationUserSyncService
             }
 
             $clientUsers = $clientData['users'] ?? [];
+
+            // Log all users fetched from client with their role slugs
+            Log::info('client_users_fetched', [
+                'app_key' => $application->app_key,
+                'application_id' => $application->id,
+                'total_users' => count($clientUsers),
+                'users' => array_map(function ($cUser) {
+                    return [
+                        'nip' => $cUser['nip'] ?? null,
+                        'email' => $cUser['email'] ?? null,
+                        'name' => $cUser['name'] ?? null,
+                        'active' => $cUser['active'] ?? true,
+                        'role_slugs' => $cUser['roles'] ?? [],
+                    ];
+                }, $clientUsers),
+            ]);
 
             return [
                 'success' => true,
@@ -469,6 +508,13 @@ class ApplicationUserSyncService
                     ->post($syncUrl);
             } else {
                 $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+
+                // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+                if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+                    $decoded = base64_decode(substr($secret, 7), true);
+                    $secret = $decoded !== false ? $decoded : $secret;
+                }
+
                 $signature = hash_hmac('sha256', $jsonBody, $secret);
                 $header = config('sso.backchannel.signature_header', 'IAM-Signature');
 

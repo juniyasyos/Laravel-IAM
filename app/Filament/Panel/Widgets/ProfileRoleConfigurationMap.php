@@ -8,6 +8,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProfileRoleConfigurationMap extends BaseWidget
 {
@@ -115,7 +117,7 @@ class ProfileRoleConfigurationMap extends BaseWidget
                 ->emptyStateDescription('Access profiles will appear here.')
                 ->emptyStateIcon('heroicon-o-shield-exclamation');
         } catch (\Throwable $e) {
-            \Log::error('ProfileRoleConfigurationMap widget failed: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('ProfileRoleConfigurationMap widget failed: ' . $e->getMessage(), ['exception' => $e]);
 
             // Return empty table on error
             return $table

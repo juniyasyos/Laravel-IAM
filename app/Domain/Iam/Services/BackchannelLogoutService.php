@@ -122,6 +122,13 @@ class BackchannelLogoutService
                     $client = $client->withToken($token);
                 } else {
                     $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+
+                    // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+                    if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+                        $decoded = base64_decode(substr($secret, 7), true);
+                        $secret = $decoded !== false ? $decoded : $secret;
+                    }
+
                     $signature = hash_hmac('sha256', json_encode($payload), $secret);
                     $header = config('sso.backchannel.signature_header', 'IAM-Signature');
                     $client = $client->withHeaders([$header => $signature]);

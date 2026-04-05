@@ -210,4 +210,70 @@ class UserDataService
             'exp' => time() + $application->getTokenExpirySeconds(),
         ];
     }
+
+    /**
+     * Get user's applications organized by access profiles.
+     * Structure: access profile -> list of applications with roles
+     */
+    public function getUserApplicationsByAccessProfile(User $user): array
+    {
+        $profiles = $user->accessProfiles()
+            ->where('is_active', true)
+            ->with(['roles' => function ($query) {
+                $query->where('iam_roles.application_id', '!=', null);
+            }, 'roles.application' => function ($query) {
+                $query->where('enabled', true);
+            }])
+            ->get();
+
+        $result = [];
+
+        foreach ($profiles as $profile) {
+            $applications = [];
+
+            foreach ($profile->roles as $role) {
+                $app = $role->application;
+
+                if (!$app) {
+                    continue;
+                }
+
+                $primaryUrl = is_array($app->redirect_uris) && !empty($app->redirect_uris)
+                    ? $app->redirect_uris[0]
+                    : null;
+
+                $applications[] = [
+                    'id' => $app->id,
+                    'app_key' => $app->app_key,
+                    'name' => $app->name,
+                    'description' => $app->description,
+                    'enabled' => $app->enabled,
+                    'logo_url' => $app->logo_url,
+                    'app_url' => $primaryUrl,
+                    'redirect_uris' => $app->redirect_uris ?? [],
+                    'role' => [
+                        'id' => $role->id,
+                        'slug' => $role->slug,
+                        'name' => $role->name,
+                        'description' => $role->description,
+                    ],
+                ];
+            }
+
+            if (!empty($applications)) {
+                $result[] = [
+                    'id' => $profile->id,
+                    'slug' => $profile->slug,
+                    'name' => $profile->name,
+                    'description' => $profile->description,
+                    'is_system' => $profile->is_system,
+                    'is_active' => $profile->is_active,
+                    'applications_count' => count($applications),
+                    'applications' => $applications,
+                ];
+            }
+        }
+
+        return $result;
+    }
 }

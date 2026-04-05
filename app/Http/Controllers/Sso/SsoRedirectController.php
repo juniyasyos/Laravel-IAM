@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Sso;
 
 use App\Http\Controllers\Controller;
-use App\Services\Sso\TokenService;
+use App\Domain\Iam\Services\TokenBuilder;
+use App\Domain\Iam\Services\UserRoleAssignmentService;
 use App\Services\Sso\SsoLogger;
 use Illuminate\Http\RedirectResponse;
 use App\Domain\Iam\Models\Application;
@@ -14,7 +15,8 @@ use Illuminate\Validation\ValidationException;
 class SsoRedirectController extends Controller
 {
     public function __construct(
-        private readonly TokenService $tokens,
+        private readonly TokenBuilder $tokenBuilder,
+        private readonly UserRoleAssignmentService $roleService,
         private readonly SsoLogger $logger
     ) {}
 
@@ -86,7 +88,10 @@ class SsoRedirectController extends Controller
                 'callback_url' => $application->callback_url,
             ]);
 
-            $token = $this->tokens->issue($request->user(), $application);
+            // Build token using TokenBuilder (same as refresh) for signature consistency
+            // Add app_key to extra field to preserve it across token lifecycle
+            $extra = ['app' => $application->app_key];
+            $token = $this->tokenBuilder->buildTokenForUser($request->user(), $extra);
 
             Log::info('[IAM] SSO: Token generated', [
                 'token_preview' => substr($token, 0, 20) . '...',

@@ -165,9 +165,11 @@ class AccessProfileSeeder extends Seeder
 
             /**
              * ✅ Sync Roles ke Profile
+             * NOTE: Use sync() instead of syncWithoutDetaching() to completely
+             * replace old role links with new ones (fresh mapping each run)
              */
             if (! empty($roleIds)) {
-                $profile->roles()->syncWithoutDetaching($roleIds);
+                $profile->roles()->sync($roleIds);
 
                 $this->command->info(
                     "  ✅ Profile '{$profile->slug}' synced (" . count($roleIds) . " roles)"

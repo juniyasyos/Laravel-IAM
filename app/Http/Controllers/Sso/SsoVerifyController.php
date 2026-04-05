@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Sso;
 
 use App\Domain\Iam\Models\Application;
+use App\Domain\Iam\Services\TokenBuilder;
 use App\Domain\Iam\Services\UserDataService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Sso\SsoLogger;
-use App\Services\Sso\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SsoVerifyController extends Controller
 {
     public function __construct(
-        private readonly TokenService $tokens,
+        private readonly TokenBuilder $tokenBuilder,
         private readonly SsoLogger $logger,
         private readonly UserDataService $userDataService
     ) {}
@@ -46,7 +46,9 @@ class SsoVerifyController extends Controller
         ]);
 
         try {
-            $payload = $this->tokens->verify($validated['token']);
+            // Use TokenBuilder which uses Firebase\JWT - consistent with token issuance
+            $claims = $this->tokenBuilder->verify($validated['token']);
+            $payload = $claims->toPayload();
 
             Log::info('[IAM] SSO: Token verified successfully', [
                 'user_id' => $payload['sub'] ?? null,
@@ -62,7 +64,7 @@ class SsoVerifyController extends Controller
                 // Root token claims for client mapping
                 'sub' => $payload['sub'] ?? null,
                 'app' => $payload['app'] ?? null,
-                'roles' => $payload['roles'] ?? [],
+                'roles' => $payload['roles_by_app'][$payload['app']] ?? [],
                 'perms' => $payload['perms'] ?? [],
 
                 // Token info
@@ -75,7 +77,7 @@ class SsoVerifyController extends Controller
                 ],
 
                 // Roles from token (explicit field remains good compatibility)
-                'roles' => $payload['roles'] ?? [],
+                'roles' => $payload['roles_by_app'][$payload['app']] ?? [],
             ];
 
             // Include comprehensive user data if requested

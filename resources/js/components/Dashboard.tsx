@@ -28,6 +28,31 @@ interface DashboardProps {
     enabled: boolean;
     logo_url?: string | null;
   }>;
+  accessProfiles?: Array<{
+    id: number;
+    slug: string;
+    name: string;
+    description?: string;
+    is_system: boolean;
+    is_active: boolean;
+    applications_count: number;
+    applications: Array<{
+      id: number;
+      app_key: string;
+      name: string;
+      description?: string;
+      enabled: boolean;
+      logo_url?: string;
+      app_url?: string;
+      redirect_uris?: string[];
+      role: {
+        id: number;
+        slug: string;
+        name: string;
+        description?: string;
+      };
+    }>;
+  }>;
 }
 
 interface ApplicationWithIcon extends Application {
@@ -37,104 +62,167 @@ interface ApplicationWithIcon extends Application {
   userRole?: string;
 }
 
-// Modal Content Component - Shared between Desktop and Mobile
-function ModalContent({ user, nip, role, logout, onClose, isMobile = false }: {
+// Enterprise Style Modal Content (Clean, Minimal, Professional)
+function ModalContent({ user, nip, logout, onClose, isMobile = false, accessProfiles = [] }: {
   user: UserType;
   nip: string;
-  role: string;
   logout: () => void;
   onClose: () => void;
   isMobile?: boolean;
+  accessProfiles?: Array<{
+    id: number;
+    slug: string;
+    name: string;
+    description?: string;
+    is_system: boolean;
+    is_active: boolean;
+    applications_count: number;
+    applications: Array<{
+      id: number;
+      app_key: string;
+      name: string;
+      description?: string;
+      enabled: boolean;
+      logo_url?: string;
+      app_url?: string;
+      redirect_uris?: string[];
+      role: {
+        id: number;
+        slug: string;
+        name: string;
+        description?: string;
+      };
+    }>;
+  }>;
 }) {
   return (
-    <>
-      {/* Modal Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-t-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white">Info Akun</h2>
-          <button 
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <h2 className="text-base font-semibold text-gray-900">Info Akun</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Profile */}
+      <div className="px-5 py-4 flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+          <User className="w-5 h-5 text-gray-600" />
         </div>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg">
-            <User className="w-8 h-8 text-white" />
-          </div>
-          <div className="text-white">
-            <p className="text-lg font-semibold">{user?.name || 'User'}</p>
-            <p className="text-sm text-white/80">{role}</p>
-          </div>
+        <div>
+          <p className="font-medium text-gray-900">{user?.name || 'User'}</p>
+          <p className="text-sm text-gray-500">Pengguna Sistem</p>
         </div>
       </div>
 
-      {/* Modal Content */}
-      <div className={`p-6 space-y-5 ${isMobile ? 'flex-1 overflow-y-auto' : ''}`}>
-        {/* NIP */}
-        <div>
-          <label className="block text-sm text-gray-600 mb-2">NIP</label>
-          <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 font-medium">
-            {nip}
-          </div>
+      <div className="border-t border-gray-100" />
+
+      {/* Details */}
+      <div className={`px-5 py-4 space-y-3 text-sm ${isMobile ? 'flex-1 overflow-y-auto' : ''}`}>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Username</span>
+          <span className="font-medium text-gray-900">{user?.name}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">NIP</span>
+          <span className="font-medium text-gray-900">{nip}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500">Status</span>
+          <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-600 font-medium">
+            Active
+          </span>
         </div>
 
         {/* Access Profiles Section */}
-        {user?.access_profiles && user.access_profiles.length > 0 && (
-          <div className="border-t pt-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">Profil Akses</h3>
-            <div className="space-y-3">
-              {user.access_profiles.map((profile) => (
-                <div key={profile.id} className="bg-blue-50/50 border border-blue-100 rounded-lg p-3">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-1">{profile.name}</h4>
-                  <p className="text-xs text-gray-600 mb-2">{profile.description}</p>
-                  {profile.roles && profile.roles.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {profile.roles.map((role, idx) => (
-                        <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-                          {role.role_name}
-                        </span>
-                      ))}
-                    </div>
+        {accessProfiles && accessProfiles.length > 0 && (
+          <div className="pt-4 border-t border-gray-100 space-y-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Profil Akses
+            </h3>
+
+            {accessProfiles.map((profile) => (
+              <div key={profile.id} className="space-y-2 pb-3 border-b border-gray-100 last:border-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {profile.name}
+                    </p>
+                    {profile.description && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {profile.description}
+                      </p>
+                    )}
+                  </div>
+                  {profile.is_system && (
+                    <span className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-700 font-medium flex-shrink-0">
+                      System
+                    </span>
                   )}
                 </div>
-              ))}
-            </div>
+
+                {/* Applications in this profile */}
+                {profile.applications && profile.applications.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {profile.applications.map((app) => (
+                      <div key={app.id} className="text-xs bg-gray-50 rounded px-2 py-2">
+                        <div className="font-medium text-gray-700">
+                          {app.name}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                            {app.role.name}
+                          </span>
+                          {app.enabled && (
+                            <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                              Online
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="border-t pt-5 space-y-3">
-          <button 
-            onClick={() => {
-              try {
-                ssoService.redirectToAdminPanel();
-              } catch (error) {
-                console.error('Failed to access admin panel:', error);
-                alert('Gagal mengakses Admin Panel. Silakan coba lagi.');
-              }
-            }}
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-          >
-            <Settings className="w-5 h-5" />
-            Admin Panel
-          </button>
-
-          <button 
-            onClick={logout}
-            className="w-full bg-white border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-medium py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:scale-105 active:scale-95"
-          >
-            <LogOut className="w-5 h-5" />
-            Keluar
-          </button>
-        </div>
+        {/* No access profiles message */}
+        {(!accessProfiles || accessProfiles.length === 0) && (
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500 italic">
+              Tidak memiliki akses profil. Hubungi administrator untuk diberikan akses.
+            </p>
+          </div>
+        )}
       </div>
-    </>
+
+      {/* Actions */}
+      <div className="p-4 border-t border-gray-100 space-y-2">
+        <button
+          onClick={() => ssoService.redirectToAdminPanel()}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2"
+        >
+          <Settings className="w-4 h-4" />
+          Admin Panel
+        </button>
+
+        <button
+          onClick={logout}
+          className="w-full text-sm text-red-600 hover:bg-red-50 py-2.5 rounded-lg flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Keluar
+        </button>
+      </div>
+    </div>
   );
 }
 
-export default function Dashboard({ user, applications: appsFromProps = [] }: DashboardProps) {
+
+export default function Dashboard({ user, applications: appsFromProps = [], accessProfiles = [] }: DashboardProps) {
   const { logout } = useAuth();
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [applications, setApplications] = useState<ApplicationWithIcon[]>([]);
@@ -155,14 +243,21 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
   useEffect(() => {
     const processApplications = async () => {
       try {
-        // Use applications from props if available, otherwise fetch from API
-        const appsList = appsFromProps.length > 0 ? appsFromProps : await dashboardService.getApplications();
-        
+        // In Inertia, use applications from props directly
+        // No need for API fallback - DashboardController already handles access control
+        // console.log('📋 [Dashboard-Inertia] Processing applications from props...');
+        // console.log('📋 [Dashboard-Inertia] appsFromProps.length:', appsFromProps.length);
+        // console.log('📋 [Dashboard-Inertia] appsFromProps data:', appsFromProps);
+
+        const appsList = appsFromProps; // Use props directly, no API fallback
+        // console.log('📊 [Dashboard-Inertia] Using apps from props:', appsList);
+        // console.log('📊 [Dashboard-Inertia] appsList.length:', appsList.length);
+
         const appsWithIcons = appsList.map((app) => {
           // Determine icon and gradient based on app name
-          const config = appConfig[app.name] || { 
-            icon: Hospital, 
-            gradient: 'from-gray-500 to-gray-600' 
+          const config = appConfig[app.name] || {
+            icon: Hospital,
+            gradient: 'from-gray-500 to-gray-600'
           };
 
           // Status based on enabled flag - simplified to single status
@@ -172,6 +267,8 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
           // Get user role in this application
           const userAppData = user?.applications?.find((ua: UserApplication) => ua.app_key === app.app_key);
           const userRole = userAppData?.roles?.[0]?.name || undefined;
+
+          // console.log(`  ✅ App: ${app.name} (app_key: ${app.app_key}, enabled: ${app.enabled})`);
 
           return {
             id: app.app_key,
@@ -187,9 +284,11 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
           };
         });
 
+        // console.log('🎯 [Dashboard-Inertia] Final appsWithIcons:', appsWithIcons);
+        // console.log('✅ [Dashboard-Inertia] Successfully rendered', appsWithIcons.length, 'applications');
         setApplications(appsWithIcons);
       } catch (error) {
-        console.error('Failed to fetch applications:', error);
+        // console.error('❌ [Dashboard-Inertia] Failed to process applications:', error);
         // Fallback to empty array - user can see no apps loaded
         setApplications([]);
       } finally {
@@ -198,11 +297,11 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
     };
 
     processApplications();
-  }, [appsFromProps, user, appConfig]);
+  }, [appsFromProps, user?.applications]);
 
-  // Placeholder for role and nip, will be fetched from user data
-  const role = user?.role || 'Pengguna Sistem';
+  // Placeholder for nip, will be fetched from user data
   const nip = user?.nip || '---';
+
 
   const handleAppClick = (app: Application) => {
     if (app.url) {
@@ -223,18 +322,18 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={() => setShowInfoModal(false)} />
-          
+
           {/* Modal - Desktop Popup */}
           <div className="fixed top-20 right-4 md:right-8 z-50 hidden md:block">
             <div className="bg-white rounded-2xl shadow-2xl w-96 animate-slideDown" onClick={(e) => e.stopPropagation()}>
-              <ModalContent user={user} nip={nip} role={role} logout={logout} onClose={() => setShowInfoModal(false)} />
+              <ModalContent user={user} nip={nip} logout={logout} onClose={() => setShowInfoModal(false)} accessProfiles={accessProfiles} />
             </div>
           </div>
 
           {/* Modal - Mobile Sidebar */}
           <div className="fixed top-0 right-0 h-full z-50 md:hidden w-96 max-w-[100vw] animate-slideLeft" onClick={(e) => e.stopPropagation()}>
             <div className="bg-white h-full shadow-2xl flex flex-col">
-              <ModalContent user={user} nip={nip} role={role} logout={logout} onClose={() => setShowInfoModal(false)} isMobile />
+              <ModalContent user={user} nip={nip} logout={logout} onClose={() => setShowInfoModal(false)} isMobile accessProfiles={accessProfiles} />
             </div>
           </div>
         </>
@@ -341,24 +440,22 @@ export default function Dashboard({ user, applications: appsFromProps = [] }: Da
                               <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
                                 {app.description}
                               </p>
-                              
+
                               {/* Status Badge and User Role */}
                               <div className="space-y-2">
                                 {/* Status Badge - Simplified */}
                                 {app.status && (
                                   <div className="flex items-center gap-2">
-                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 flex-shrink-0 ${
-                                      app.status === 'Siap Diakses' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 flex-shrink-0 ${app.status === 'Siap Diakses' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
                                       'bg-amber-100 text-amber-700 border border-amber-200'
-                                    }`}>
-                                      <span className={`w-1.5 h-1.5 rounded-full ${
-                                        app.status === 'Siap Diakses' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
-                                      }`} />
+                                      }`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${app.status === 'Siap Diakses' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+                                        }`} />
                                       {app.status}
                                     </span>
                                   </div>
                                 )}
-                                
+
                                 {/* User Role in Application */}
                                 {app.userRole && (
                                   <div className="flex items-center gap-2">

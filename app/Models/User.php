@@ -103,8 +103,10 @@ class User extends Authenticatable
 
 
     /**
-     * Get all application roles via access profiles.
-     * This returns roles that are assigned through access profiles.
+     * Get all application roles via active access profiles.
+     * This returns roles that are assigned through ACTIVE access profiles only.
+     * 
+     * SECURITY: Only includes roles from profiles where is_active = true
      */
     public function rolesViaAccessProfiles()
     {
@@ -115,7 +117,13 @@ class User extends Authenticatable
                     ->whereIn('access_profile_id', function ($subQuery) {
                         $subQuery->select('access_profile_id')
                             ->from('user_access_profiles')
-                            ->where('user_id', $this->id);
+                            ->where('user_id', $this->id)
+                            ->whereIn('access_profile_id', function ($profileQuery) {
+                                // SECURITY FIX: Only include roles from ACTIVE profiles
+                                $profileQuery->select('id')
+                                    ->from('access_profiles')
+                                    ->where('is_active', true);
+                            });
                     });
             });
     }
@@ -160,6 +168,10 @@ class User extends Authenticatable
     /**
      * Get list of app_keys this user has access to.
      *
+     * SECURITY: Only includes apps accessible through:
+     * - Direct application role assignments, AND
+     * - Roles via ACTIVE access profiles only
+     *
      * NOTE: IAM admin users (e.g. nip=0000.00000) should not implicitly
      * inherit access to all apps unless permissions are explicitly assigned.
      */
@@ -169,7 +181,7 @@ class User extends Authenticatable
             return [];
         }
 
-        // include direct application roles + roles via access profiles
+        // include direct application roles + roles via ACTIVE access profiles only
         $appKeysFromRoles = $this->effectiveApplicationRoles()
             ->with('application')
             ->get()
@@ -178,7 +190,9 @@ class User extends Authenticatable
             ->values()
             ->toArray();
 
+        // SECURITY FIX: Explicitly check is_active = true for profiles
         $appKeysFromProfiles = $this->accessProfiles()
+            ->where('is_active', true)
             ->whereHas('roles.application')
             ->with('roles.application')
             ->get()
@@ -211,6 +225,8 @@ class User extends Authenticatable
     /**
      * Check if user has IAM admin role (for any application).
      * Used for Filament panel and Pulse dashboard access control.
+     * 
+     * SECURITY: Only counts admin roles from ACTIVE access profiles
      *
      * @return bool
      */
@@ -235,7 +251,8 @@ class User extends Authenticatable
             return true;
         }
 
-        // Check admin role via access profiles
+        // Check admin role via ACTIVE access profiles only
+        // SECURITY FIX: Added validation for is_active = true
         return \App\Domain\Iam\Models\ApplicationRole::query()
             ->where('slug', 'admin')
             ->whereIn('id', function ($query) {
@@ -244,7 +261,13 @@ class User extends Authenticatable
                     ->whereIn('access_profile_id', function ($subQuery) {
                         $subQuery->select('access_profile_id')
                             ->from('user_access_profiles')
-                            ->where('user_id', $this->id);
+                            ->where('user_id', $this->id)
+                            ->whereIn('access_profile_id', function ($profileQuery) {
+                                // SECURITY FIX: Only count admin from ACTIVE profiles
+                                $profileQuery->select('id')
+                                    ->from('access_profiles')
+                                    ->where('is_active', true);
+                            });
                     });
             })
             ->exists();

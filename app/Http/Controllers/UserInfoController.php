@@ -53,7 +53,8 @@ class UserInfoController extends Controller
     }
 
     /**
-     * Get the currently authenticated user\'s accessible applications with metadata.
+     * Get the currently authenticated user's accessible applications with metadata.
+     * Organized by access profiles.
      *
      * @param Request $request
      * @return JsonResponse
@@ -62,41 +63,15 @@ class UserInfoController extends Controller
     {
         $user = $request->user();
 
-        $userData = $this->userDataService->getUserData(
-            user: $user,
-            application: null,
-            includeProfiles: false
-        );
-
-        // Enrich applications with complete metadata
-        $enrichedApps = collect($userData['applications'] ?? [])
-            ->filter(function ($app) {
-                // Only include enabled applications
-                return $app['enabled'] === true;
-            })
-            ->map(function ($app) {
-                return array_merge($app, [
-                    'roles_count' => count($app['roles'] ?? []),
-                    'status' => $app['enabled'] ? 'active' : 'inactive',
-                    'has_logo' => !empty($app['logo_url']),
-                    'has_primary_url' => !empty($app['app_url']),
-                    'urls' => [
-                        'primary' => $app['app_url'],
-                        'all_redirects' => $app['redirect_uris'] ?? [],
-                    ],
-                ]);
-            })
-            ->values()
-            ->toArray();
-
-        $enrichedApps = $this->prependIamHomeApplication($enrichedApps, false);
+        $accessProfiles = $this->userDataService->getUserApplicationsByAccessProfile($user);
 
         return response()->json([
             'sub' => (string) $user->id,
             'user_id' => $user->id,
-            'total_accessible_apps' => count($enrichedApps),
-            'applications' => $enrichedApps,
-            'accessible_apps' => $userData['accessible_apps'] ?? [],
+            'total_profiles' => count($accessProfiles),
+            'total_accessible_apps' => collect($accessProfiles)
+                ->sum(fn($p) => $p['applications_count']),
+            'access_profiles' => $accessProfiles,
             'timestamp' => now()->toIso8601String(),
         ]);
     }
