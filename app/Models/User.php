@@ -86,6 +86,7 @@ class User extends Authenticatable
             'user_id',
             'access_profile_id'
         )
+            ->using(\App\Models\UserAccessProfile::class)
             ->withPivot('assigned_by')
             ->withTimestamps();
     }
@@ -279,5 +280,84 @@ class User extends Authenticatable
     public function findForPassport(string $username): static
     {
         return $this->where('nip', $username)->first();
+    }
+
+    /**
+     * Detach access profile and trigger sync.
+     * 
+     * This method replaces the standard ->detach() to ensure
+     * that client applications are notified of the change.
+     *
+     * @param  mixed  $ids  Profile ID(s) to detach (null = detach all)
+     * @return void
+     */
+    public function detachAccessProfile($ids = null): void
+    {
+        // Perform the detach operation
+        $this->accessProfiles()->detach($ids);
+
+        // Trigger sync to notify clients of the change
+        $this->triggerSync('access_profiles_detached');
+    }
+
+    /**
+     * Attach access profile and trigger sync.
+     *
+     * This method replaces the standard ->attach() to ensure
+     * that client applications are notified of the change.
+     *
+     * @param  mixed  $ids  Profile ID(s) to attach with optional pivot data
+     * @return void
+     */
+    public function attachAccessProfile($ids): void
+    {
+        // Perform the attach operation
+        $this->accessProfiles()->attach($ids);
+
+        // Trigger sync to notify clients of the change
+        $this->triggerSync('access_profiles_attached');
+    }
+
+    /**
+     * Sync access profiles and trigger sync.
+     *
+     * This method replaces the standard ->sync() to ensure
+     * that client applications are notified of the change.
+     *
+     * @param  iterable  $ids  Profile ID(s) to sync
+     * @return void
+     */
+    public function syncAccessProfiles($ids): void
+    {
+        // Perform the sync operation
+        $this->accessProfiles()->sync($ids);
+
+        // Trigger sync to notify clients of the change
+        $this->triggerSync('access_profiles_synced');
+    }
+
+    /**
+     * Manually trigger sync to client applications.
+     *
+     * This is called by the access profile relationship methods
+     * and can also be called manually when needed.
+     *
+     * @param  string  $event  Event description for logging
+     * @return void
+     */
+    public function triggerSync(string $event = 'manual'): void
+    {
+        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+            return;
+        }
+
+        \Illuminate\Support\Facades\Log::info('iam.user_access_profile_manual_sync', [
+            'user_id' => $this->id,
+            'email' => $this->email,
+            'event' => $event,
+            'timestamp' => now()->toDateTimeString(),
+        ]);
+
+        \App\Jobs\SyncApplicationUsers::dispatch([], [], [], $this->id);
     }
 }

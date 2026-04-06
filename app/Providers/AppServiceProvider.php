@@ -31,5 +31,6 @@ class AppServiceProvider extends ServiceProvider
 
         User::observe(UserObserver::class);
         \App\Domain\Iam\Models\UserApplicationRole::observe(UserApplicationRoleObserver::class);
+        \App\Models\UserAccessProfile::observe(\App\Observers\UserAccessProfileObserver::class);
     }
 }

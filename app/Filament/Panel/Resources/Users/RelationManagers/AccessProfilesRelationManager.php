@@ -102,11 +102,18 @@ class AccessProfilesRelationManager extends RelationManager
                     })
                     ->after(function () {
                         $userId = Auth::id();
-                        if ($userId && $this->getOwnerRecord() && method_exists($this, 'getRecord')) {
+                        $user = $this->getOwnerRecord();
+
+                        if ($userId && $user && method_exists($this, 'getRecord')) {
                             DB::table('user_access_profiles')
-                                ->where('user_id', $this->getOwnerRecord()->id)
+                                ->where('user_id', $user->id)
                                 ->whereNull('assigned_by')
                                 ->update(['assigned_by' => $userId]);
+                        }
+
+                        // Trigger sync to notify clients of profile assignment
+                        if ($user instanceof \App\Models\User) {
+                            $user->triggerSync('access_profile_assigned_via_filament');
                         }
                     }),
             ])
@@ -135,6 +142,9 @@ class AccessProfilesRelationManager extends RelationManager
 
                         app(\App\Domain\Iam\Services\BackchannelLogoutService::class)
                             ->notifyUser($user, $applications, true);
+
+                        // Trigger sync to notify clients of profile removal
+                        $user->triggerSync('access_profile_detached_via_filament');
                     }),
             ])
             ->toolbarActions([
@@ -158,6 +168,9 @@ class AccessProfilesRelationManager extends RelationManager
 
                             app(\App\Domain\Iam\Services\BackchannelLogoutService::class)
                                 ->notifyUser($user, $applications, true);
+
+                            // Trigger sync to notify clients of profile removals
+                            $user->triggerSync('access_profiles_bulk_detached_via_filament');
                         }),
                 ]),
             ])
