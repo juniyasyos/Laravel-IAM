@@ -39,6 +39,7 @@ class Application extends Model
         'redirect_uris',
         'callback_url',
         'backchannel_url',
+        'logout_uri',
         'secret',
         'logo_url',
         'token_expiry',

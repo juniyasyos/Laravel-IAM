@@ -16,7 +16,16 @@ class TokenBuilder
     public function __construct(
         private readonly UserRoleAssignmentService $userRoleService
     ) {
-        $this->secretKey = config('iam.signing_key') ?? config('app.key');
+        $secret = config('iam.signing_key') ?? config('app.key');
+
+        // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+        // Must match TokenValidator decoding logic for signature consistency
+        if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+            $decoded = base64_decode(substr($secret, 7), true);
+            $secret = $decoded !== false ? $decoded : $secret;
+        }
+
+        $this->secretKey = $secret;
     }
 
     /**

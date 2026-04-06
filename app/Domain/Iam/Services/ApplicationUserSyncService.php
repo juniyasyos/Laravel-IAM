@@ -458,7 +458,7 @@ class ApplicationUserSyncService
         return $users->map(function (User $user) use ($application) {
             $roles = $user->effectiveApplicationRoles()
                 ->where('application_id', $application->id)
-                ->pluck('slug')
+                ->pluck('name')
                 ->toArray();
 
             return [

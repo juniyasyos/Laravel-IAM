@@ -92,9 +92,10 @@ class RolesRelationManager extends RelationManager
                             return;
                         }
 
-                        $bodyMessage = $result['message'] ?? ($result['error'] ?? 'Sync completed');
+                        $bodyMessage = $result['message'] ?? 'Sync completed';
                         $message = $bodyMessage . "\n\n";
                         $message .= "Mode: {$mode} (create on client: " . ($allowCreate ? 'yes' : 'no') . ")\n";
+                        $message .= "\n";
 
                         $comparison = $result['comparison'] ?? null;
                         if ($comparison && is_array($comparison)) {
@@ -108,28 +109,11 @@ class RolesRelationManager extends RelationManager
                                 $message .= "⚠ Missing in Client: {$missing} role(s)\n";
                             }
                             if ($extra > 0) {
-                                $message .= "ℹ Extra in Client: {$extra} role(s)";
+                                $message .= "ℹ Extra in Client: {$extra} role(s)\n";
                             }
                         } else {
-                            $inSync = 0;
-                            $missing = 0;
-                            $extra = 0;
-
-                            $message .= "Current Status: comparison data not available\n";
-                        }
-
-                        //Ensure defaults in case comparison block is missing.
-                        $inSync = $inSync ?? 0;
-                        $missing = $missing ?? 0;
-                        $extra = $extra ?? 0;
-
-                        $message .= "Current Status:\n";
-                        $message .= "✓ In Sync: {$inSync} role(s)\n";
-                        if ($missing > 0) {
-                            $message .= "⚠ Missing in Client: {$missing} role(s)\n";
-                        }
-                        if ($extra > 0) {
-                            $message .= "ℹ Extra in Client: {$extra} role(s)";
+                            $message .= "⚠ Status: No comparison data available\n";
+                            $message .= "   (Roles may not have been created due to client restrictions)\n";
                         }
 
                         Notification::make()

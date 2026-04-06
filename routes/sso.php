@@ -34,6 +34,11 @@ return [
                     ->name('api.sso.verify');
             });
 
+        // Token expiry notification from client apps
+        Route::post('/iam/notify-token-expired', \App\Http\Controllers\Api\TokenExpiredNotificationController::class)
+            ->middleware(SsoLoggingMiddleware::class)
+            ->name('api.notify.token.expired');
+
         // Token exchange endpoints (no token required yet)
         Route::middleware([SsoLoggingMiddleware::class])
             ->group(function () {
