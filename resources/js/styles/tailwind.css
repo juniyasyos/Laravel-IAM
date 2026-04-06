@@ -16,8 +16,8 @@ body,
     padding: 0;
 }
 
-html {
-    zoom: var(--app-zoom);
+body {
+    transform: scale(var(--app-zoom));
 }
 
 @supports not (zoom: 1) {

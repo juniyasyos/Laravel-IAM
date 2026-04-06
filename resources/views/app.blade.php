@@ -5,7 +5,7 @@ $isAuthenticated = auth()->check();
 $isAuthRoute = request()->routeIs('login') || request()->routeIs('register') || request()->is('login') || request()->is('register');
 $shouldDisableZoom = $isAuthenticated || $isAuthRoute;
 @endphp
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" style="--app-zoom: {{ $shouldDisableZoom ? '1' : '0.8' }};" @class(['dark'=> ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" style="--app-zoom: {{ $shouldDisableZoom ? '0.9' : '0.8' }};" @class(['dark'=> ($appearance ?? 'system') == 'dark'])>
 
 <head>
     <meta charset="utf-8">
