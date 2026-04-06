@@ -99,39 +99,43 @@ class UserInfoController extends Controller
         // Fetch full app details including creation metadata
         $appDetails = Application::whereIn('app_key', $accessibleAppKeys)
             ->where('enabled', true)
-            ->get()
-            ->map(function ($app) use ($userData, $user) {
-                // Find corresponding application data from userData
-                $appData = collect($userData['applications'] ?? [])
-                    ->firstWhere('app_key', $app->app_key) ?? [];
+            ->get();
 
-                return [
-                    'id' => $app->id,
-                    'app_key' => $app->app_key,
-                    'name' => $app->name,
-                    'description' => $app->description,
-                    'status' => $app->enabled ? 'active' : 'inactive',
-                    'metadata' => [
-                        'logo' => [
-                            'url' => $app->logo_url,
-                            'available' => !empty($app->logo_url),
-                        ],
-                        'urls' => [
-                            'primary' => is_array($app->redirect_uris) && !empty($app->redirect_uris)
-                                ? $app->redirect_uris[0]
-                                : null,
-                            'all_redirects' => $app->redirect_uris ?? [],
-                            'callback' => $app->callback_url,
-                            'backchannel' => $app->backchannel_url,
-                        ],
-                        'created_at' => $app->created_at?->toIso8601String(),
-                        'updated_at' => $app->updated_at?->toIso8601String(),
+        // OPTIMIZATION: Load user profiles once instead of per-application
+        $userProfilesByApp = $this->getUserProfilesByApp($user);
+
+        $appDetails = $appDetails->map(function ($app) use ($userData, $user, $userProfilesByApp) {
+            // Find corresponding application data from userData
+            $appData = collect($userData['applications'] ?? [])
+                ->firstWhere('app_key', $app->app_key) ?? [];
+
+            return [
+                'id' => $app->id,
+                'app_key' => $app->app_key,
+                'name' => $app->name,
+                'description' => $app->description,
+                'status' => $app->enabled ? 'active' : 'inactive',
+                'metadata' => [
+                    'logo' => [
+                        'url' => $app->logo_url,
+                        'available' => !empty($app->logo_url),
                     ],
-                    'roles' => $appData['roles'] ?? [],
-                    'roles_count' => count($appData['roles'] ?? []),
-                    'access_profiles_using_this_app' => $this->getProfilesUsingApp($user, $app->id),
-                ];
-            })
+                    'urls' => [
+                        'primary' => is_array($app->redirect_uris) && !empty($app->redirect_uris)
+                            ? $app->redirect_uris[0]
+                            : null,
+                        'all_redirects' => $app->redirect_uris ?? [],
+                        'callback' => $app->callback_url,
+                        'backchannel' => $app->backchannel_url,
+                    ],
+                    'created_at' => $app->created_at?->toIso8601String(),
+                    'updated_at' => $app->updated_at?->toIso8601String(),
+                ],
+                'roles' => $appData['roles'] ?? [],
+                'roles_count' => count($appData['roles'] ?? []),
+                'access_profiles_using_this_app' => $userProfilesByApp[$app->id] ?? [],
+            ];
+        })
             ->sortBy('name')
             ->values()
             ->toArray();
@@ -238,6 +242,38 @@ class UserInfoController extends Controller
      * @param int $appId
      * @return array
      */
+    /**
+     * OPTIMIZATION: Load user profiles grouped by application once.
+     * Prevents N+1 queries when accessed in loops.
+     *
+     * @param User $user
+     * @return array<int, array> Profiles grouped by app_id
+     */
+    private function getUserProfilesByApp(User $user): array
+    {
+        return $user->accessProfiles()
+            ->with('roles:id,application_id,slug,name')
+            ->get()
+            ->flatMap(function ($profile) {
+                // Group this profile by each application it has roles for
+                return $profile->roles->groupBy('application_id')->map(function ($appRoles, $appId) use ($profile) {
+                    return [
+                        'app_id' => $appId,
+                        'profile' => [
+                            'id' => $profile->id,
+                            'name' => $profile->name,
+                            'slug' => $profile->slug,
+                        ],
+                    ];
+                });
+            })
+            ->groupBy('app_id')
+            ->map(function ($appProfiles) {
+                return $appProfiles->map(fn($item) => $item['profile'])->values()->toArray();
+            })
+            ->toArray();
+    }
+
     private function getProfilesUsingApp(User $user, int $appId): array
     {
         return $user->accessProfiles()

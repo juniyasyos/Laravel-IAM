@@ -295,10 +295,14 @@ class UserRoleAssignmentService
         }
 
         if (! empty($missingSlugs) && empty($this->allowedProfileIds)) {
+            // OPTIMIZATION: Fetch all missing roles in one query instead of per-slug loop
+            $missingRoles = \App\Domain\Iam\Models\ApplicationRole::where('application_id', $app->id)
+                ->whereIn('slug', $missingSlugs)
+                ->get()
+                ->keyBy('slug');
+
             foreach ($missingSlugs as $slug) {
-                $role = \App\Domain\Iam\Models\ApplicationRole::where('application_id', $app->id)
-                    ->where('slug', $slug)
-                    ->first();
+                $role = $missingRoles->get($slug);
 
                 if (! $role) {
                     continue;
