@@ -161,29 +161,6 @@ function ModalContent({ user, nip, logout, onClose, isMobile = false, accessProf
                     </span>
                   )}
                 </div>
-
-                {/* Applications in this profile */}
-                {profile.applications && profile.applications.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    {profile.applications.map((app) => (
-                      <div key={app.id} className="text-xs bg-gray-50 rounded px-2 py-2">
-                        <div className="font-medium text-gray-700">
-                          {app.name}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs font-medium">
-                            {app.role.name}
-                          </span>
-                          {app.enabled && (
-                            <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs font-medium">
-                              Online
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>
