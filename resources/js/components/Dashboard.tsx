@@ -112,7 +112,7 @@ function ModalContent({ user, nip, logout, onClose, isMobile = false, accessProf
         </div>
         <div>
           <p className="font-medium text-gray-900">{user?.name || 'User'}</p>
-          <p className="text-sm text-gray-500">Pengguna Sistem</p>
+          <p className="text-sm text-gray-500">{nip}</p>
         </div>
       </div>
 
@@ -120,14 +120,6 @@ function ModalContent({ user, nip, logout, onClose, isMobile = false, accessProf
 
       {/* Details */}
       <div className={`px-5 py-4 space-y-3 text-sm ${isMobile ? 'flex-1 overflow-y-auto' : ''}`}>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Username</span>
-          <span className="font-medium text-gray-900">{user?.name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">NIP</span>
-          <span className="font-medium text-gray-900">{nip}</span>
-        </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-500">Status</span>
           <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-600 font-medium">

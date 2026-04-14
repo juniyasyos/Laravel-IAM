@@ -10,7 +10,7 @@ export const ssoService = {
     async redirectToAdminPanel(): Promise<void> {
         try {
             console.log('SSO: Redirecting to admin panel...');
-            window.open('/panel', '_blank');
+            window.location.href = '/panel';
         } catch (error) {
             console.error('Failed to redirect to admin panel:', error);
             throw error;
