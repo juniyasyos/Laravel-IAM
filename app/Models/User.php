@@ -158,8 +158,8 @@ class User extends Authenticatable
             if (! isset($grouped[$appKey])) {
                 $grouped[$appKey] = [];
             }
-            if (! in_array($role->name, $grouped[$appKey], true)) {
-                $grouped[$appKey][] = $role->name;
+            if (! in_array($role->slug, $grouped[$appKey], true)) {
+                $grouped[$appKey][] = $role->slug;
             }
         }
 
