@@ -1,6 +1,6 @@
- # 🔐 Laravel IAM + SSO RBAC
+# 🔐 Laravel IAM + SSO RBAC
 
-Central Identity & Access Management (IAM) server dengan Single Sign-On (SSO) dan Role-Based Access Control (RBAC) untuk ekosistem aplikasi Rumah Sakit.
+Central Identity & Access Management (IAM) server for Laravel with Single Sign-On (SSO) and role-based access control (RBAC).
 
 <p align="left">
   <a href="https://www.php.net/releases/8.2/en.php"><img alt="PHP" src="https://img.shields.io/badge/PHP-%5E8.2-777BB4?logo=php&logoColor=white"></a>
@@ -13,27 +13,27 @@ Central Identity & Access Management (IAM) server dengan Single Sign-On (SSO) da
 
 ## ⚠️ Important: NIP-Based Authentication
 
-**Version 2.0** - Sistem telah dioptimalkan untuk menggunakan **NIP (Nomor Induk Pegawai)** sebagai identifier utama menggantikan email.
+This IAM server is optimized for **NIP (Nomor Induk Pegawai)** as the primary user identifier.
 
-- ✅ **Login Field**: Gunakan `nip` bukan `email`
-- ✅ **Primary Identifier**: NIP (unique, required)
-- ✅ **Email**: Opsional (nullable)
-- 📚 **Migration Guide**: Lihat [NIP-MIGRATION-SUMMARY.md](./docs/NIP-MIGRATION-SUMMARY.md)
+- ✅ **Login field:** `nip`
+- ✅ **Primary identifier:** unique `nip`
+- ✅ **Email:** optional / nullable
+- ✅ **NIP support is required for current migrations and auth flows**
 
 ---
 
 ## ✨ Features
 
-- 🔐 **Central Authentication** - Single source of truth untuk user authentication
-- 🆔 **NIP-Based Login** - Authentication menggunakan NIP sebagai identifier utama
-- 🎫 **OAuth2-like SSO Flow** - Authorization code grant dengan JWT tokens
-- 👥 **RBAC Management** - Roles & Permissions menggunakan Spatie Permission
-- 🔑 **JWT Tokens** - Access & Refresh tokens dengan signature verification
-- 📱 **Multi-Application Support** - Manage multiple client applications
-- 🛡️ **Security First** - Hashed secrets, CSRF protection, token revocation
-- 📊 **Filament Admin Panel** - Beautiful UI untuk manage users, roles, permissions, applications
-- 🔄 **Token Introspection** - Validate tokens dari client applications
-- 📝 **Comprehensive Docs** - Full documentation untuk IAM server & client integration
+- 🔐 **Central authentication server** for Laravel client applications
+- 🆔 **NIP-based login** as the main identity field
+- 🎫 **OAuth2-like SSO flow** with authorization and token exchange endpoints
+- 👥 **RBAC management** using Spatie Permission
+- 🔑 **JWT access token issuance, refresh, and verification**
+- 📱 **Multi-application support** with application keys and redirect URIs
+- 🛡️ **Security first**: token revocation, issuer validation, signed JWTs, and CSRF/state handling
+- 📊 **Filament admin panel** for managing users, applications, roles, and permissions
+- 🔄 **Token introspection** and user info endpoints for client apps
+- 📝 **Built-in back-channel and session notification endpoints**
 
 ---
 
@@ -47,19 +47,14 @@ Central Identity & Access Management (IAM) server dengan Single Sign-On (SSO) da
 └─────────────────┘         └─────────────────┘
 ```
 
-**Supported Client Applications:**
-- SIIMUT - Sistem Informasi Manajemen Rumah Sakit
-- Incident Reporting System
-- Pharmacy Management System
-- Any custom application
+Supported client integrations include SIIMUT, incident reporting systems, pharmacy systems, and custom hospital applications.
 
 ---
 
 ## 🚀 Quick Start
 
- ## 🚀 Quick Start
+1. **Clone and install**
 
-1) **Clone & Install**
 ```bash
 git clone https://github.com/juniyasyos/laravel-iam.git
 cd laravel-iam
@@ -67,170 +62,169 @@ composer install
 npm install
 ```
 
-2) **Environment Setup**
+2. **Create your environment**
+
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-Update `.env` with your database credentials:
+3. **Update `.env`**
+
+Set database and app URLs, including the IAM issuer.
+
 ```env
+APP_URL=http://localhost:8010
+IAM_ISSUER=http://localhost:8010
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
-DB_DATABASE=iam_database
+DB_PORT=3306
+DB_DATABASE=iam
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
-
-CACHE_DRIVER=redis
-SESSION_DRIVER=redis
 ```
 
-3) **Run Migrations**
+4. **Run migrations**
+
 ```bash
 php artisan migrate
 ```
 
-4) **Seed Sample Data (Optional)**
+5. **Optional: seed sample data**
+
 ```bash
 php artisan db:seed --class=IAMSampleDataSeeder
 ```
 
-This creates sample users, roles, permissions, and applications.
+6. **Build assets and start the server**
 
-**Sample Credentials (NIP-based):**
-- Admin: NIP `admin001` / password `password`
-- Doctor: NIP `doctor001` / password `password`
-- Nurse: NIP `nurse001` / password `password`
-
-> **Note**: Login menggunakan NIP, bukan email. Email bersifat opsional.
-
-**Sample Applications:**
-- SIIMUT: `siimut.app` / `siimut_secret_key_123`
-- Incident Report: `incident-report.app` / `incident_secret_key_456`
-
-5) **Build Assets & Start Server**
 ```bash
 npm run build
 php artisan serve
 ```
 
-Visit: `http://localhost:8000/admin`
+7. **Visit the admin panel**
+
+Default panel path is `/panel` and can be customized via `PANEL_PATH` in `.env`.
 
 ---
 
-## 📚 Documentation
+## 🔧 IAM Server Endpoints
 
-### 🆕 NIP-Based Authentication (v2.0)
-- **[SSO Client Integration - NIP](docs/SSO-CLIENT-NIP-INTEGRATION.md)** - 📖 Panduan lengkap integrasi SSO dengan NIP
-- **[SSO Quick Start - NIP](docs/SSO-NIP-QUICK-START.md)** - 🚀 Quick start guide (5 menit)
-- **[NIP Migration Summary](docs/NIP-MIGRATION-SUMMARY.md)** - 🔄 Summary perubahan dan migration guide
+### Public SSO routes
 
-### Core Documentation
-- **[IAM + SSO RBAC Full Documentation](docs/IAM-SSO-RBAC-DOCUMENTATION.md)** - Complete technical documentation
-- **[Client Integration Guide](docs/CLIENT-INTEGRATION.md)** - How to integrate client applications
-- **[Setup Guide](docs/SETUP.md)** - Installation & deployment guide
-- **[API Response Format](docs/API-RESPONSE-FORMAT.md)** - API response structure
-- **[Quick Reference](docs/QUICK-REFERENCE.md)** - Quick reference guide
+- `GET /sso/authorize` — authorization endpoint for client apps
+- `GET /sso/logout/chain` — public logout chain for front-channel logout notifications
+- `GET /sso/redirect` — redirect endpoint after local auth before issuing SSO codes
 
-### What's Included
+### Token exchange and refresh
 
-**Database Schema:**
-- `applications` - Client application registry
-- `users` - User accounts with unit information
-- `roles` - User roles (via Spatie Permission)
-- `permissions` - Granular permissions (via Spatie Permission)
-- `model_has_roles` - User-role assignments
-- `model_has_permissions` - Direct permission assignments
-- `role_has_permissions` - Role-permission assignments
+- `POST /sso/token` — token exchange for SSO authorization flow
+- `POST /sso/token/refresh` — refresh SSO access tokens
+- `POST /oauth/token` — OAuth-compatible token endpoint
 
-**API Endpoints:**
-- `GET /oauth/authorize` - Authorization endpoint
-- `POST /oauth/token` - Token exchange & refresh
-- `POST /oauth/introspect` - Token validation
-- `GET /oauth/userinfo` - User information
-- `POST /oauth/revoke` - Token revocation
+### Protected token-related endpoints
 
-**JWT Token Payload (v2.0 - NIP-based):**
-```json
-{
-  "iss": "https://iam.example.com",
-  "sub": "123",
-  "nip": "198501012010121001",
-  "email": "doctor@rs.id",
-  "name": "Dr. John Doe",
-  "app": "siimut.app",
-  "roles": ["doctor"],
-  "iat": 1700294400,
-  "exp": 1700298000
-}
+- `GET /sso/userinfo` — user info for SSO token consumers
+- `GET /oauth/userinfo` — OAuth-style user info endpoint
+- `GET /iam/user-applications` — user applications list
+- `GET /iam/user-access-profiles` — user access profiles
+- `GET /users/applications` — backward-compatible applications endpoint
+- `GET /users/applications/detail` — backward-compatible application detail endpoint
+
+### Server-to-server endpoints
+
+- `POST /sso/introspect` — token introspection endpoint for client applications
+- `POST /oauth/introspect` — OAuth introspection endpoint
+- `POST /oauth/revoke` — revoke token/refresh access
+- `POST /iam/notify-token-expired` — client token expiry notification
+
+---
+
+## 🧩 Client Integration Notes
+
+Client applications connect using an `app_key` and a registered redirect URI.
+
+### Sample SSO flow
+
+1. Redirect the user to:
+
+```text
+GET /sso/authorize?app_key=your_app_key&redirect_uri=https://client.app/callback&state=random123
 ```
 
-**Key Changes:**
-- ⭐ `nip`: PRIMARY IDENTIFIER (new, required)
-- 🔄 `email`: Optional (nullable)
-- ✅ `iss`: Token issuer
-- ✅ `app`: Application key (updated from `app_key`)
+2. After user consent, exchange the authorization code:
 
----
+```bash
+curl -X POST http://localhost:8010/oauth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "authorization_code",
+    "app_key": "your_app_key",
+    "app_secret": "your_app_secret",
+    "code": "AUTH_CODE",
+    "redirect_uri": "https://client.app/callback"
+  }'
+```
 
-## 🔧 Managing Applications
+3. Validate or introspect tokens using:
 
-### Via Filament Admin Panel
+- `POST /sso/introspect`
+- `POST /oauth/introspect`
 
-1. Login to admin panel: `/admin`
-2. Navigate to "Applications"
-3. Create new application with:
-   - App Key (e.g., `myapp.app`)
-   - Name & Description
-   - Redirect URIs (JSON array)
-   - Client Secret
-   - Allowed Scopes (permissions)
-   - Token Expiry (seconds)
+4. Retrieve user details:
 
-### Via Artisan Tinker
-
-```php
-php artisan tinker
-
-use  App\Domain\Iam\Models\Application;;
-
-$app = Application::create([
-    'app_key' => 'myapp.app',
-    'name' => 'My Application',
-    'enabled' => true,
-    'redirect_uris' => ['http://localhost:3000/auth/callback'],
-    'secret' => 'my_client_secret', // Automatically hashed
-    'token_expiry' => 3600,
-]);
+```bash
+curl -X GET http://localhost:8010/oauth/userinfo \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ---
 
-## 👥 Managing Roles & Permissions
+## 🧠 NIP and Authentication
 
-### Via Filament Admin Panel
+This repository is designed around NIP as the primary identity field. Migrations already include:
 
-1. Navigate to "Roles"
-2. Create roles (e.g., `doctor`, `nurse`, `admin`)
-3. Assign permissions to roles
-4. Navigate to "Users"
-5. Assign roles to users
+- unique `nip` on users
+- nullable `email`
+- NIP-based password reset and login flows
 
-### Via Artisan Tinker
+If you are migrating from an email-based system, update your client apps and login forms to use `nip` instead.
+
+---
+
+## 👥 Managing Applications
+
+### Filament admin panel
+
+1. Open the panel at `/panel` (or configured `PANEL_PATH`).
+2. Create a new application.
+3. Set:
+   - `app_key`
+   - redirect URIs
+   - client secret
+   - allowed scopes
+   - token expiry
+
+### Seeded applications
+
+Existing repo fixtures and seeders use keys such as `siimut` and `incident-reporting`.
+
+---
+
+## 👤 Managing Roles & Permissions
+
+Manage roles and permissions through Filament or artisan.
 
 ```php
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
-// Create permission
 Permission::create(['name' => 'read:patients']);
-
-// Create role
 $doctor = Role::create(['name' => 'doctor']);
 $doctor->givePermissionTo('read:patients');
-
-// Assign role to user
 $user = User::find(1);
 $user->assignRole('doctor');
 ```
@@ -239,229 +233,77 @@ $user->assignRole('doctor');
 
 ## 🧪 Testing SSO Flow
 
-### 1. Start IAM Server
+### 1. Start the IAM server
+
 ```bash
 php artisan serve
 ```
 
-### 2. Test Authorization
-Visit:
-```
-http://localhost:8000/oauth/authorize?app_key=siimut.app&redirect_uri=http://localhost:3000/auth/callback&state=random123
+### 2. Test authorization
+
+```text
+http://localhost:8010/sso/authorize?app_key=siimut&redirect_uri=http://localhost:3000/auth/callback&state=test123
 ```
 
-### 3. Exchange Code for Token
+### 3. Exchange code for token
+
 ```bash
-curl -X POST http://localhost:8000/oauth/token \
+curl -X POST http://localhost:8010/oauth/token \
   -H "Content-Type: application/json" \
   -d '{
     "grant_type": "authorization_code",
-    "app_key": "siimut.app",
+    "app_key": "siimut",
     "app_secret": "siimut_secret_key_123",
     "code": "YOUR_AUTH_CODE",
     "redirect_uri": "http://localhost:3000/auth/callback"
   }'
 ```
 
-### 4. Get User Info
+### 4. Get user info
+
 ```bash
-curl -X GET http://localhost:8000/oauth/userinfo \
+curl -X GET http://localhost:8010/oauth/userinfo \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ---
 
-## 🔌 Client Integration
-
-### Quick Setup for Client Apps
-
-1. **Install JWT Library**
-```bash
-composer require firebase/php-jwt
-```
-
-2. **Configure IAM**
-```env
-IAM_SERVER_URL=https://iam.rs.id
-IAM_APP_KEY=your_app_key
-IAM_APP_SECRET=your_client_secret
-IAM_REDIRECT_URI=https://your-app.rs.id/auth/callback
-```
-
-3. **Copy Middleware Files**
-Copy from IAM repository:
-- `app/Services/JWTTokenService.php`
-- `app/Http/Middleware/VerifyIAMAccessToken.php`
-- `app/Http/Middleware/InjectIAMUserContext.php`
-- `app/Http/Middleware/CheckIAMPermission.php`
-- `app/Http/Middleware/CheckIAMRole.php`
-
-4. **Protect Routes**
-```php
-Route::middleware(['iam.verify', 'iam.inject'])->group(function () {
-    // Authenticated routes
-    Route::get('/patients', [PatientController::class, 'index']);
-    
-    // With permission check
-    Route::middleware('iam.permission:write:patients')->group(function () {
-        Route::post('/patients', [PatientController::class, 'store']);
-    });
-});
-```
-
-**Full integration guide:** [docs/CLIENT-INTEGRATION.md](docs/CLIENT-INTEGRATION.md)
-
----
-
 ## 🛡️ Security Features
 
-- ✅ **Hashed Client Secrets** - SHA-256 hashing untuk application secrets
-- ✅ **CSRF Protection** - State parameter validation
-- ✅ **Short-lived Access Tokens** - Default 1 hour expiry
-- ✅ **Token Revocation** - Refresh tokens dapat di-revoke
-- ✅ **Redirect URI Validation** - Strict whitelist validation
-- ✅ **JWT Signature Verification** - HS256 algorithm
-- ✅ **One-time Authorization Codes** - 5 minute TTL, single use
-- ✅ **Rate Limiting** - Throttle on sensitive endpoints
+- ✅ hashed client secrets
+- ✅ redirect URI validation
+- ✅ JWT signature validation
+- ✅ token revocation
+- ✅ refresh token lifecycle control
+- ✅ NIP-based login with optional email
+- ✅ CSRF/state handling for SSO flows
 
 ---
 
 ## 📦 Tech Stack
 
-- **Backend:** Laravel 12, PHP 8.2
-- **Database:** MySQL / PostgreSQL
-- **Cache:** Redis (for auth codes & tokens)
-- **Admin Panel:** Filament v4
-- **JWT:** Firebase PHP-JWT
-- **RBAC:** Spatie Laravel Permission
-- **Testing:** Pest PHP
-- **Frontend (Admin):** Vue 3 + Inertia.js + Tailwind CSS v4
+- Laravel 12
+- PHP 8.2
+- Filament v4
+- Spatie Laravel Permission v6
+- Laravel Passport for OAuth support
+- Redis / database drivers for sessions and cache
+- Inertia.js + Vue 3 + Tailwind CSS
+- Pest PHP for testing
 
 ---
 
-## 🔄 SSO Flow Diagram
+## 🧰 Development scripts
 
-```
-┌─────────┐                ┌─────────┐                ┌─────────┐
-│ Client  │                │   IAM   │                │  User   │
-│   App   │                │ Server  │                │ Browser │
-└────┬────┘                └────┬────┘                └────┬────┘
-     │                          │                          │
-     │ 1. Redirect /oauth/authorize                        │
-     ├─────────────────────────►│                          │
-     │                          │ 2. Show login (if needed)│
-     │                          ├─────────────────────────►│
-     │                          │ 3. User authenticates    │
-     │                          │◄─────────────────────────┤
-     │                          │ 4. Generate auth code    │
-     │ 5. Redirect with code    │                          │
-     │◄─────────────────────────┤                          │
-     │ 6. POST /oauth/token     │                          │
-     ├─────────────────────────►│                          │
-     │ 7. Return tokens         │                          │
-     │◄─────────────────────────┤                          │
-     │ 8. API calls with token  │                          │
-     ├─────────────────────────►│                          │
-```
+- `composer install`
+- `npm install`
+- `npm run dev`
+- `npm run build`
+- `composer test`
+- `composer setup`
 
 ---
 
-## 🧰 Development
+## 📝 License
 
- 5) Open the panel
- - http://localhost:8000/panel
-
- ---
-
- ## 🎨 Theming & Branding
- Konfigurasi tema dan panel dibuat modular.
-
- - Panel config: `config/panel.php`
-   - id, path, name, version
-   - theme.plugin (kelas plugin tema)
- - Theme config: `config/panel-theme.php`
-   - colors, default_mode, brand (logo, favicon)
-   - vite_path untuk entry CSS
-
- Plugin dan provider:
- - Plugin: `app/Filament/Plugins/PanelTheme.php`
- - Panel provider: `app/Providers/Filament/PanelPanelProvider.php`
- - CSS entry: `resources/css/filament/panel/theme.css` (sudah di `vite.config.ts`)
-
- ### Konfigurasi lewat .env
- ```env
- # Panel Settings
- PANEL_ID=panel
- PANEL_PATH=panel
- PANEL_NAME=Panel
- # Optional version label at topbar
- # PANEL_VERSION=1.0.0
-
- # Theme Colors & Mode
- PANEL_THEME_PRIMARY=#f59e0b
- PANEL_THEME_MODE=system  # system | light | dark
-
- # Branding (opsional)
- PANEL_BRAND_NAME=Panel
- # PANEL_BRAND_LOGO=/images/brand/logo-light.svg
- # PANEL_BRAND_LOGO_DARK=/images/brand/logo-dark.svg
- # PANEL_BRAND_LOGO_HEIGHT=1.5rem
- # PANEL_BRAND_FAVICON=/favicon.ico
- ```
- Simpan aset di `public/` (mis. `public/images/brand/...`).
-
- Setelah perubahan, clear config dan rebuild assets jika perlu:
- ```bash
- php artisan config:clear
- npm run dev # atau npm run build
- ```
-
- ### Catatan
- - Provider membaca `config('panel.*')` untuk `id`, `path`, `name`, `version`, dan `theme.plugin`.
- - Jika `PANEL_VERSION` diset, label versi tampil di topbar.
-
- ---
-
- ## 📦 Tech Stack
- - Laravel 12, PHP 8.2
- - Filament v4 (Panel at `/panel`)
- - Inertia + Vue 3
- - Vite + Tailwind v4 (`@tailwindcss/vite`)
- - Pest tests
-
- ---
-
- ## 🧰 NPM/Composer Scripts
- - `composer dev` — run server, queue, logs, and Vite together
- - `composer dev:ssr` — same but with Inertia SSR
- - `npm run dev` — Vite dev server
- - `npm run build` — production build
- - `composer test` — run tests
-
- ---
-
- ## 📁 Notable Paths
- - Panel provider: `app/Providers/Filament/PanelPanelProvider.php`
- - Theme plugin: `app/Filament/Plugins/PanelTheme.php`
- - Theme CSS: `resources/css/filament/panel/theme.css`
- - Panel config: `config/panel.php`
- - Theme config: `config/panel-theme.php`
-
- ---
-
- ## 🙌 Tips
- - Butuh palette lain? Gunakan `Filament\Support\Colors\Color::*` atau hex.
- - Ingin tampilan kustom? Ubah `resources/css/filament/panel/*` atau tambahkan partial baru.
- - Prefer MySQL/PostgreSQL? Update `.env` dan rerun migrations.
-
- ---
-
- ## 📝 License
- MIT — feel free to use, modify, and ship.
-
- ---
-
- ## 💬 Feedback
- Found something to improve or an idea to enhance the starter? Issues and PRs are welcome.
-
- Happy building! ✨
+MIT
