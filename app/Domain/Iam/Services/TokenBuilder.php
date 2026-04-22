@@ -3,9 +3,11 @@
 namespace App\Domain\Iam\Services;
 
 use App\Domain\Iam\DataTransferObjects\TokenClaims;
+use App\Models\Session;
 use App\Models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class TokenBuilder
@@ -122,7 +124,28 @@ class TokenBuilder
             throw new \Exception('Token has been revoked due to user logout.');
         }
 
+        if (isset($claims->extra['session_id']) && ! $this->isSessionActive((string) $claims->extra['session_id'])) {
+            throw new \Exception('Token session is inactive or has been revoked.');
+        }
+
         return $claims;
+    }
+
+    private function isSessionActive(string $sessionId): bool
+    {
+        $session = Session::where('id', $sessionId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $session) {
+            return false;
+        }
+
+        if ($session->expired_at !== null && Carbon::now()->greaterThan($session->expired_at)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -152,12 +175,20 @@ class TokenBuilder
             // First try normal verify (includes signature check and expiry)
             $oldClaims = $this->verify($token);
         } catch (\Exception $verifyErr) {
-            // If verify fails, try decode (signature check but no expiry check)
+            $message = strtolower($verifyErr->getMessage());
+
+            // Only allow refresh when the token has expired.
+            // Do not refresh tokens that were revoked or invalid.
+            if (! str_contains($message, 'expired')) {
+                throw new \Exception('Token refresh denied: ' . $verifyErr->getMessage());
+            }
+
+            // If the token is expired but otherwise valid, decode the payload
+            // without enforcing expiry so we can issue a new token.
             try {
                 $oldClaims = $this->decode($token);
             } catch (\Exception $decodeErr) {
-                // If decode also fails (invalid JWT structure/signature),
-                // try manual parsing as last resort
+                // If decode fails, try manual parsing as last resort
                 $oldClaims = $this->parseTokenPayload($token);
             }
         }

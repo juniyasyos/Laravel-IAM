@@ -23,5 +23,14 @@ class Session extends Model
         'user_agent',
         'payload',
         'last_activity',
+        'is_active',
+        'created_at',
+        'expired_at',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'expired_at' => 'datetime',
     ];
 }

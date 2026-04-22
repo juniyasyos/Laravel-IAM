@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 use App\Models\Session as AuthSession;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -279,6 +280,15 @@ class User extends Authenticatable
         }
 
         $sessions->each->delete();
+
+        // Ensure any existing JWTs are invalidated even if they are not bound
+        // to a terminated session row or the session record was already gone.
+        Cache::put("user_logout_at:{$this->id}", time());
+
+        $jwtService = app(\App\Services\JWTTokenService::class);
+        \App\Domain\Iam\Models\Application::query()
+            ->pluck('app_key')
+            ->each(fn(string $appKey) => $jwtService->revokeRefreshToken($this->id, $appKey));
 
         return $count;
     }

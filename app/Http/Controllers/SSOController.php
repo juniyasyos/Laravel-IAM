@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Iam\Models\Application;
 use App\Domain\Iam\Services\UserDataService;
+use App\Models\Session;
 use App\Models\User;
 use App\Services\JWTTokenService;
 use Illuminate\Http\JsonResponse;
@@ -73,6 +74,7 @@ class SSOController extends Controller
             'user_id' => Auth::id(),
             'app_key' => $application->app_key,
             'redirect_uri' => $request->redirect_uri,
+            'session_id' => $request->session()->getId(),
         ];
 
         // Store code in cache (5 minutes TTL)
@@ -179,6 +181,14 @@ class SSOController extends Controller
         // Get user
         $user = User::findOrFail($codeData['user_id']);
 
+        // Deny token issuance if the original login session is no longer active.
+        if (empty($codeData['session_id']) || ! Session::where('id', $codeData['session_id'])->where('is_active', true)->exists()) {
+            return response()->json([
+                'error' => 'invalid_grant',
+                'error_description' => 'The authorization session is no longer active.',
+            ], 400);
+        }
+
         // Akses ketat: user harus punya access profile aktif dengan role di app target.
         if (! $user->hasActiveAccessProfileForApp($application)) {
             return response()->json([
@@ -187,9 +197,11 @@ class SSOController extends Controller
             ], 403);
         }
 
-        // Generate tokens
-        $accessToken = $this->jwtService->generateAccessToken($user, $application);
-        $refreshToken = $this->jwtService->generateRefreshToken($user, $application);
+        $sessionId = $codeData['session_id'];
+
+        // Generate tokens with the original IAM session id.
+        $accessToken = $this->jwtService->generateAccessToken($user, $application, $sessionId);
+        $refreshToken = $this->jwtService->generateRefreshToken($user, $application, $sessionId);
 
         // Get comprehensive user data
         $userData = $this->userDataService->getUserData($user, $application, true);
@@ -253,8 +265,12 @@ class SSOController extends Controller
         // Get user
         $user = User::findOrFail($decoded->sub);
 
-        // Generate new access token
-        $accessToken = $this->jwtService->generateAccessToken($user, $application);
+        // Generate new access token with the refresh token's session identifier.
+        $accessToken = $this->jwtService->generateAccessToken(
+            $user,
+            $application,
+            $decoded->session_id ?? null
+        );
 
         return response()->json([
             'access_token' => $accessToken,

@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
-use  App\Domain\Iam\Models\Application;;
-
+use App\Domain\Iam\Models\Application;
+use App\Models\Session;
 use App\Models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class JWTTokenService
@@ -36,7 +37,7 @@ class JWTTokenService
      * @param  Application  $application
      * @return string
      */
-    public function generateAccessToken(User $user, Application $application): string
+    public function generateAccessToken(User $user, Application $application, ?string $sessionId = null): string
     {
         $now = time();
         $expiry = $now + $application->getTokenExpirySeconds();
@@ -58,6 +59,10 @@ class JWTTokenService
             'roles' => $roles,
             'type' => 'access',
         ];
+
+        if ($sessionId !== null) {
+            $payload['session_id'] = $sessionId;
+        }
 
         return JWT::encode($payload, $this->secretKey, $this->algorithm);
     }
@@ -91,7 +96,7 @@ class JWTTokenService
      * @param  Application  $application
      * @return string
      */
-    public function generateRefreshToken(User $user, Application $application): string
+    public function generateRefreshToken(User $user, Application $application, ?string $sessionId = null): string
     {
         $now = time();
         $expiry = $now + (86400 * 30); // 30 days
@@ -104,6 +109,10 @@ class JWTTokenService
             'app_key' => $application->app_key,
             'type' => 'refresh',
         ];
+
+        if ($sessionId !== null) {
+            $payload['session_id'] = $sessionId;
+        }
 
         $token = JWT::encode($payload, $this->secretKey, $this->algorithm);
 
@@ -128,10 +137,33 @@ class JWTTokenService
     public function verifyToken(string $token): object
     {
         try {
-            return JWT::decode($token, new Key($this->secretKey, $this->algorithm));
+            $decoded = JWT::decode($token, new Key($this->secretKey, $this->algorithm));
+
+            if (isset($decoded->session_id) && ! $this->isSessionActive((string) $decoded->session_id)) {
+                throw new \Exception('Session is inactive or has been revoked.');
+            }
+
+            return $decoded;
         } catch (\Exception $e) {
             throw new \Exception('Invalid or expired token: ' . $e->getMessage());
         }
+    }
+
+    private function isSessionActive(string $sessionId): bool
+    {
+        $session = Session::where('id', $sessionId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $session) {
+            return false;
+        }
+
+        if ($session->expired_at !== null && Carbon::now()->greaterThan($session->expired_at)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

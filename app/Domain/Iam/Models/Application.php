@@ -146,47 +146,6 @@ class Application extends Model
     }
 
     /**
-     * Derive a back‑channel logout URI for server‑to‑server logout notifications.
-     * Default path is `/iam/backchannel-logout` and can be verified by clients
-     * using the HMAC signature header configured in `config/sso.php`.
-     */
-    public function getBackchannelLogoutUriAttribute(): ?string
-    {
-        $path = config('sso.backchannel.path', '/iam/backchannel-logout');
-
-        // Prefer explicit backchannel_url for internal Docker networking
-        if (! empty($this->backchannel_url)) {
-            $base = rtrim($this->backchannel_url, '/');
-            return $base . $path;
-        }
-
-        // Fallback to redirect URIs (first entry) for public URLs
-        if (! empty($this->redirect_uris) && is_array($this->redirect_uris) && count($this->redirect_uris) > 0) {
-            $base = rtrim($this->redirect_uris[0], '/');
-            return $base . $path;
-        }
-
-        // Fallback to callback_url host
-        if (! empty($this->callback_url)) {
-            $parts = parse_url($this->callback_url);
-
-            if (! isset($parts['scheme']) || ! isset($parts['host'])) {
-                return null;
-            }
-
-            $base = $parts['scheme'] . '://' . $parts['host'];
-
-            if (! empty($parts['port'])) {
-                $base .= ':' . $parts['port'];
-            }
-
-            return rtrim($base, '/') . $path;
-        }
-
-        return null;
-    }
-
-    /**
      * Get the creator of this application.
      */
     public function creator(): BelongsTo

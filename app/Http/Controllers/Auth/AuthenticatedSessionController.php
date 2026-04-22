@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Session;
 use App\Services\Sso\SsoLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -193,6 +194,11 @@ class AuthenticatedSessionController extends Controller
                     $jwtService->revokeRefreshToken($user->id, $appKey);
                 });
 
+            if ($request->hasSession() && $request->session()->getId()) {
+                Session::where('id', $request->session()->getId())
+                    ->update(['is_active' => false]);
+            }
+
             Cache::put("user_logout_at:{$user->id}", time());
         }
 
@@ -201,13 +207,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Fire optional back‑channel logout notifications (server->server).
-        if ($user && config('sso.backchannel.enabled', false)) {
-            \App\Jobs\NotifyClientsOfLogout::dispatch($user);
-        }
-
-        // Continue backchannel logout in background, but return the user
-        // immediately to the login page.
+        // Backchannel logout is disabled; rely on token invalidation and remote verification instead.
         return redirect('/login');
     }
 }

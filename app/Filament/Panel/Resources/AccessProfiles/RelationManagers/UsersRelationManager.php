@@ -108,8 +108,6 @@ class UsersRelationManager extends RelationManager
                             'application_ids' => collect($applications)->pluck('id')->values()->all(),
                             'application_keys' => collect($applications)->pluck('app_key')->values()->all(),
                         ]);
-
-                        app(\App\Domain\Iam\Services\BackchannelLogoutService::class)->notifyUser($record, $applications, true);
                     }),
             ])
             ->toolbarActions([
@@ -138,9 +136,6 @@ class UsersRelationManager extends RelationManager
                                     'application_ids' => collect($applications)->pluck('id')->values()->all(),
                                     'application_keys' => collect($applications)->pluck('app_key')->values()->all(),
                                 ]);
-
-                                app(\App\Domain\Iam\Services\BackchannelLogoutService::class)
-                                    ->notifyUser($record, $applications, true);
                             }
                         }),
                 ]),

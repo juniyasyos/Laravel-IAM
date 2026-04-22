@@ -140,9 +140,6 @@ class AccessProfilesRelationManager extends RelationManager
                             ->values()
                             ->all();
 
-                        app(\App\Domain\Iam\Services\BackchannelLogoutService::class)
-                            ->notifyUser($user, $applications, true);
-
                         // Trigger sync to notify clients of profile removal
                         $user->triggerSync('access_profile_detached_via_filament');
                     }),
@@ -165,9 +162,6 @@ class AccessProfilesRelationManager extends RelationManager
                                 ->unique('id')
                                 ->values()
                                 ->all();
-
-                            app(\App\Domain\Iam\Services\BackchannelLogoutService::class)
-                                ->notifyUser($user, $applications, true);
 
                             // Trigger sync to notify clients of profile removals
                             $user->triggerSync('access_profiles_bulk_detached_via_filament');

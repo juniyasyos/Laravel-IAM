@@ -77,7 +77,7 @@ class UsersTable
 
                 // DAFTAR APLIKASI YANG BISA DIAKSES
                 TextColumn::make('accessible_apps')
-                    ->label('Aplikasi')
+                    ->label('Role Bundles')
                     ->getStateUsing(function (User $record): ?string {
                         $apps = $record->accessProfiles()->pluck('name')->toArray() ?? [];
 

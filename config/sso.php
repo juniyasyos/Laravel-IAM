@@ -37,19 +37,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Back‑channel logout (optional)
+    | Backchannel configuration
     |--------------------------------------------------------------------------
     |
-    | When enabled, IAM will attempt server‑to‑server (back‑channel) logout
-    | notifications to client applications. The notification is a signed
-    | POST request sent to the client's derived back‑channel URI (default:
-    | <base>/iam/backchannel-logout). Clients must opt in and verify the
-    | HMAC signature using the shared SSO secret.
+    | Shared configuration values for SSO token verification and integration
+    | with external client applications.
     |
     */
     'backchannel' => [
-        'enabled' => env('SSO_BACKCHANNEL_LOGOUT', false),
-        'path' => env('SSO_BACKCHANNEL_LOGOUT_PATH', '/iam/backchannel-logout'),
         'signature_header' => env('SSO_BACKCHANNEL_SIGNATURE_HEADER', 'IAM-Signature'),
     ],
 ];
