@@ -232,11 +232,11 @@ return [
     | Define which user fields should be included in API responses.
     | Fields are returned in the order specified here.
     |
-    | Default fields: id, name, nip, active
+    | Default fields: id, name, nip, status
     |
     */
 
-    'user_fields' => env('IAM_USER_FIELDS', 'id,name,nip,email,active'),
+    'user_fields' => env('IAM_USER_FIELDS', 'id,name,nip,email,status'),
 
     'user_sync_force_pull' => env('IAM_USER_SYNC_FORCE_PULL', false),
 

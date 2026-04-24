@@ -92,7 +92,7 @@ class ApplicationUserSyncService
                     'name' => $cUser['name'] ?? null,
                     'email' => $cUser['email'] ?? null,
                     'password' => bcrypt('rschjaya1234'),
-                    'active' => $cUser['active'] ?? true,
+                    'status' => $this->resolveStatusValue($cUser, 'active'),
                 ]);
 
                 Log::info('iam.user_sync_created_user', [
@@ -101,7 +101,7 @@ class ApplicationUserSyncService
                     'nip' => $user->nip,
                     'email' => $user->email,
                     'name' => $user->name,
-                    'active' => $user->active,
+                    'status' => $user->status,
                 ]);
 
                 if (empty($user->email)) {
@@ -115,24 +115,26 @@ class ApplicationUserSyncService
 
                 $created++;
             } else {
-                $changesBefore = $user->only(['nip', 'name', 'email', 'active']);
+                $changesBefore = $user->only(['nip', 'name', 'email', 'status']);
 
                 $forcePull = config('iam.user_sync_force_pull', false);
+                $resolvedStatus = $this->resolveStatusValue($cUser, $user->status);
+
                 if ($forcePull) {
                     $user->update([
                         'name' => $cUser['name'] ?? null,
                         'email' => $cUser['email'] ?? null,
-                        'active' => array_key_exists('active', $cUser) ? $cUser['active'] : null,
+                        'status' => $resolvedStatus,
                     ]);
                 } else {
                     $user->update([
                         'name' => array_key_exists('name', $cUser) ? $cUser['name'] : $user->name,
                         'email' => array_key_exists('email', $cUser) ? $cUser['email'] : $user->email,
-                        'active' => array_key_exists('active', $cUser) ? $cUser['active'] : $user->active,
+                        'status' => $resolvedStatus,
                     ]);
                 }
 
-                $changesAfter = $user->only(['nip', 'name', 'email', 'active']);
+                $changesAfter = $user->only(['nip', 'name', 'email', 'status']);
 
                 Log::info('iam.user_sync_updated_user', [
                     'application_id' => $application->id,
@@ -308,7 +310,8 @@ class ApplicationUserSyncService
                         'nip' => $user->nip,
                         'email' => $user->email,
                         'name' => $user->name,
-                        'active' => $user->active,
+                        'status' => $user->status,
+                        'active' => $user->status === 'active',
                         'unit_kerja' => $user->unitKerjas->pluck('unit_name')->toArray(),
                         'roles' => array_values($roles),
                     ];
@@ -497,7 +500,8 @@ class ApplicationUserSyncService
                 'nip' => $cUser['nip'] ?? null,
                 'email' => $cUser['email'] ?? null,
                 'name' => $cUser['name'] ?? null,
-                'active' => $cUser['active'] ?? null,
+                'status' => $cUser['status'] ?? null,
+                'active' => isset($cUser['status']) ? $cUser['status'] === 'active' : ($cUser['active'] ?? null),
                 'client_role_slugs' => $roleSlugs,
                 'has_iam_user' => (bool) $user,
                 'iam_user_id' => $user?->id,
@@ -619,7 +623,8 @@ class ApplicationUserSyncService
                         'nip' => $cUser['nip'] ?? null,
                         'email' => $cUser['email'] ?? null,
                         'name' => $cUser['name'] ?? null,
-                        'active' => $cUser['active'] ?? true,
+                        'status' => $cUser['status'] ?? null,
+                        'active' => isset($cUser['status']) ? $cUser['status'] === 'active' : ($cUser['active'] ?? true),
                         'role_slugs' => $cUser['roles'] ?? [],
                     ];
                 }, $clientUsers),
@@ -723,11 +728,43 @@ class ApplicationUserSyncService
                 'nip' => $user->nip,
                 'email' => $user->email,
                 'name' => $user->name,
-                'active' => $user->active,
+                'status' => $user->status,
+                'active' => $user->status === 'active',
                 'unit_kerja' => $user->unitKerjas->pluck('unit_name')->toArray(),
                 'roles' => array_values($roles), // Re-index array
             ];
         })->toArray();
+    }
+
+    protected function resolveStatusValue(array $data, ?string $fallback = null): ?string
+    {
+        if (array_key_exists('status', $data) && $data['status'] !== null) {
+            return $data['status'];
+        }
+
+        if (! array_key_exists('active', $data)) {
+            return $fallback;
+        }
+
+        $active = $data['active'];
+        if (is_bool($active)) {
+            return $active ? 'active' : 'inactive';
+        }
+
+        if (is_numeric($active)) {
+            return intval($active) === 1 ? 'active' : 'inactive';
+        }
+
+        $normalized = strtolower(trim((string) $active));
+        if (in_array($normalized, ['1', 'true', 'yes', 'active'], true)) {
+            return 'active';
+        }
+
+        if ($normalized === 'suspended') {
+            return 'suspended';
+        }
+
+        return 'inactive';
     }
 
     /**

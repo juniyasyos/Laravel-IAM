@@ -110,7 +110,7 @@ class UnitKerjaPushService
 
         $users = User::query()
             ->whereIn('id', $userIds)
-            ->get(['id', 'nip', 'email', 'name', 'status', 'active', 'iam_id', 'created_at', 'updated_at'])
+            ->get(['id', 'nip', 'email', 'name', 'status', 'iam_id', 'created_at', 'updated_at'])
             ->toArray();
 
         $relations = $relationsQuery

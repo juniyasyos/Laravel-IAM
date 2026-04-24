@@ -82,7 +82,7 @@ class UserDataService
      */
     private function buildUserFields(User $user): array
     {
-        $fields = collect(explode(',', config('iam.user_fields', 'id,name,email,nip,active,email_verified_at')))
+        $fields = collect(explode(',', config('iam.user_fields', 'id,name,email,nip,status,email_verified_at')))
             ->map('trim')
             ->filter()
             ->toArray();
@@ -93,7 +93,8 @@ class UserDataService
             'nip' => fn() => $user->nip ?? null,
             'name' => fn() => $user->name,
             'email' => fn() => $user->email,
-            'active' => fn() => $user->active,
+            'status' => fn() => $user->status,
+            'active' => fn() => $user->status === 'active',
             'email_verified_at' => fn() => $user->email_verified_at?->toIso8601String(),
             'created_at' => fn() => $user->created_at?->toIso8601String(),
             'updated_at' => fn() => $user->updated_at?->toIso8601String(),
