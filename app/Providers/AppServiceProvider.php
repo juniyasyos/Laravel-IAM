@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Session;
+use App\Models\UnitKerja;
 use App\Models\User;
 use App\Observers\SessionObserver;
+use App\Observers\UnitKerjaObserver;
 use App\Observers\UserApplicationRoleObserver;
 use App\Observers\UserObserver;
 use App\Services\AppRegistry;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
 
         User::observe(UserObserver::class);
         Session::observe(SessionObserver::class);
+        UnitKerja::observe(UnitKerjaObserver::class);
         \App\Domain\Iam\Models\UserApplicationRole::observe(UserApplicationRoleObserver::class);
         \App\Models\UserAccessProfile::observe(\App\Observers\UserAccessProfileObserver::class);
     }
