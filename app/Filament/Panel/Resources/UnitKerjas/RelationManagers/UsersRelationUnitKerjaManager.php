@@ -10,14 +10,14 @@ use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Select;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
-use Juniyasyos\ManageUnitKerja\Filament\Resources\UnitKerjaResource\RelationManagers\UsersRelationManager as RelationManagersUsersRelationManager;
 
-class UsersRelationUnitKerjaManager extends RelationManagersUsersRelationManager
+class UsersRelationUnitKerjaManager extends RelationManager
 {
     protected static string $relationship = 'users';
 

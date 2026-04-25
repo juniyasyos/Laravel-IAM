@@ -4,9 +4,9 @@ namespace App\Filament\Panel\Resources\UnitKerjas\Pages;
 
 use App\Filament\Panel\Resources\UnitKerjas\UnitKerjaResource;
 use Filament\Actions;
-use Juniyasyos\ManageUnitKerja\Filament\Resources\UnitKerjaResource\Pages\ListUnitKerja;
+use Filament\Resources\Pages\ListRecords;
 
-class ListUnitKerjas extends ListUnitKerja
+class ListUnitKerjas extends ListRecords
 {
     protected static string $resource = UnitKerjaResource::class;
 

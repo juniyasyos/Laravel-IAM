@@ -35,9 +35,19 @@ class PushUnitKerjaToClient implements ShouldQueue
 
         $service = new UnitKerjaPushService();
 
-        $query->get()->each(function (Application $application) use ($service) {
+        foreach ($query->get() as $application) {
             try {
                 $result = $service->push($application, $this->unitKerjaId);
+
+                if (! ($result['success'] ?? false)) {
+                    Log::warning('iam.push_unit_kerja_skipped', [
+                        'app_key' => $application->app_key,
+                        'application_id' => $application->id,
+                        'result' => $result,
+                    ]);
+
+                    continue;
+                }
 
                 Log::info('iam.push_unit_kerja_completed', [
                     'app_key' => $application->app_key,
@@ -51,6 +61,6 @@ class PushUnitKerjaToClient implements ShouldQueue
                     'error' => $e->getMessage(),
                 ]);
             }
-        });
+        }
     }
 }
