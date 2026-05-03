@@ -72,8 +72,8 @@ class UserInfolist
 
                                         TextEntry::make('gender')
                                             ->label('Jenis Kelamin')
-                                            ->placeholder('Tidak ada jenis kelamin')
-                                            ->icon('heroicon-m-gender-male-female'),
+                                            ->placeholder('Tidak ada jenis kelamin'),
+                                            // ->icon('heroicon-m-gender-male-female'),
 
                                         TextEntry::make('phone_number')
                                             ->label('Nomor Telepon')

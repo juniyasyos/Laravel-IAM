@@ -15,7 +15,7 @@ class ProfileRoleConfigurationMap extends BaseWidget
 {
     protected static ?int $sort = 3;
 
-    protected static ?string $heading = 'Access Profile Configuration';
+    protected static ?string $heading = 'Role Bundles Configuration';
 
     protected int|string|array $columnSpan = 'full';
 

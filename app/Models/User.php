@@ -16,7 +16,6 @@ use Illuminate\Support\Carbon;
 use App\Models\Session as AuthSession;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -25,7 +24,6 @@ class User extends Authenticatable
     use HasFactory;
     use Notifiable;
     use TwoFactorAuthenticatable;
-    use HasApiTokens;
     use HasRoles;
 
     /**
@@ -50,7 +48,7 @@ class User extends Authenticatable
         'last_logout_at',
     ];
 
-    /**
+    /** 
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -80,14 +78,50 @@ class User extends Authenticatable
         $this->last_login_at = now();
         $this->last_logout_at = null;
 
-        return $this->save();
+        $saved = $this->save();
+
+        if ($saved) {
+            Log::warning('user.last_login_recorded', [
+                'user_id' => $this->id,
+                'nip' => $this->nip,
+                'email' => $this->email,
+                'last_login_at' => $this->last_login_at?->toDateTimeString(),
+                'last_logout_at' => $this->last_logout_at?->toDateTimeString(),
+            ]);
+        } else {
+            Log::warning('user.last_login_failed', [
+                'user_id' => $this->id,
+                'nip' => $this->nip,
+                'email' => $this->email,
+            ]);
+        }
+
+        return $saved;
     }
 
     public function recordLastLogout(): bool
     {
         $this->last_logout_at = now();
 
-        return $this->save();
+        $saved = $this->save();
+
+        if ($saved) {
+            Log::warning('user.last_logout_recorded', [
+                'user_id' => $this->id,
+                'nip' => $this->nip,
+                'email' => $this->email,
+                'last_login_at' => $this->last_login_at?->toDateTimeString(),
+                'last_logout_at' => $this->last_logout_at?->toDateTimeString(),
+            ]);
+        } else {
+            Log::warning('user.last_logout_failed', [
+                'user_id' => $this->id,
+                'nip' => $this->nip,
+                'email' => $this->email,
+            ]);
+        }
+
+        return $saved;
     }
 
     /**
@@ -262,14 +296,14 @@ class User extends Authenticatable
             return null;
         }
 
-        return Carbon::createFromTimestamp($session->last_activity);
+        return Carbon::createFromTimestamp($session->last_activity, config('app.timezone'));
     }
 
     public function getActiveSessionExpiresAt(): ?Carbon
     {
         $lastActivity = $this->getActiveSessionLastActivity();
 
-        return $lastActivity ? $lastActivity->copy()->addSeconds(config('session.lifetime') * 60) : null;
+        return $lastActivity ? $lastActivity->copy()->addSeconds(config('session.lifetime') * 60)->setTimezone(config('app.timezone')) : null;
     }
 
     public function getActiveSessionDetails(): ?string
@@ -385,9 +419,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Find user for Passport authentication using NIP.
+     * Find user by NIP for authentication.
      */
-    public function findForPassport(string $username): static
+    public function findForAuth(string $username): static
     {
         return $this->where('nip', $username)->first();
     }

@@ -39,7 +39,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [
             \App\Http\Middleware\DebugRequestFlow::class,
         ], append: [
-            \App\Http\Middleware\AuthenticateFromJWT::class,
             // RedirectToFrontend::class, // Disabled - now using React + Inertia integrated in Laravel
             HandleAppearance::class,
             HandleInertiaRequests::class,
@@ -53,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'iam.permission' => \App\Http\Middleware\CheckIAMPermission::class,
             'iam.role' => \App\Http\Middleware\CheckIAMRole::class,
             'sso.jwt' => \App\Http\Middleware\VerifySsoJwtApi::class,
+            'validate.api.key' => \App\Http\Middleware\ValidateApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

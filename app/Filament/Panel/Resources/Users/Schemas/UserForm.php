@@ -163,7 +163,6 @@ class UserForm
                 Group::make()
                     ->columnSpan(4)
                     ->schema([
-
                         Section::make('Foto & Media')
                             ->description('Unggah avatar dan tanda tangan digital pengguna.')
                             ->schema([
@@ -173,6 +172,7 @@ class UserForm
                                     ->directory('avatars')
                                     ->image()
                                     ->imageEditor()
+                                    ->openable()
                                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg'])
                                     ->maxSize(2048)
                                     ->helperText('Unggah foto profil pengguna. Gunakan format PNG/JPG.'),
@@ -182,6 +182,7 @@ class UserForm
                                     ->disk(\App\Support\StorageFallback::isS3Available() ? 's3' : 'public')
                                     ->directory('ttd')
                                     ->image()
+                                    ->openable()
                                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg'])
                                     ->maxSize(2048)
                                     ->helperText('Unggah gambar tanda tangan berformat PNG atau JPG.'),

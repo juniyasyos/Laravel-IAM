@@ -18,14 +18,13 @@ class DatabaseSeeder extends Seeder
 
         // Order matters: Users -> Applications -> IAM Roles -> IAM User Role Assignments
         $this->call([
-            UserSeeder::class,                    // Create users first
+            // UserSeeder::class,                    // Create users first
             ApplicationsSeeder::class,            // Create registered applications
-            IamRolesSeeder::class,                // Create IAM roles per application
-            AccessProfileSeeder::class,           // Create access profiles and map to roles
-            UserAccessProfileSeeder::class,       // Assign access profiles to users ✅ ENABLE
+            // IamRolesSeeder::class,                // Create IAM roles per application
+            // AccessProfileSeeder::class,           // Create access profiles and map to roles
+            // UserAccessProfileSeeder::class,       // Assign access profiles to users ✅ ENABLE
             IkpAccessProfileSeeder::class,        // Seed IKP-specific access profiles
             // IamUserRoleAssignmentsSeeder::class,  // Assign IAM roles to users directly
-            PassportSeeder::class,                // Create Passport clients
         ]);
 
         $this->command->newLine();
@@ -53,7 +52,6 @@ class DatabaseSeeder extends Seeder
                 ['Access Profiles', \App\Domain\Iam\Models\AccessProfile::count()],
                 ['User Role Assignments', \App\Domain\Iam\Models\UserApplicationRole::count()],
                 ['User Access Profiles', DB::table('user_access_profiles')->count()],
-                ['Passport Clients', \Laravel\Passport\Client::count()],
             ]
         );
 

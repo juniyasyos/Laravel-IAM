@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Auth;
 use STS\FilamentImpersonate\Actions\Impersonate as ImpersonateTableAction;
 use App\Jobs\SyncApplicationUsers;
 use App\Domain\Iam\Models\Application;
+use Dom\Text;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Carbon;
@@ -137,44 +138,76 @@ class UsersTable
                 // LOGIN AKTIF
                 TextColumn::make('session_active')
                     ->label('Login Aktif')
+                    ->badge()
+                    ->color(function (User $record) {
+                        if ($record->last_login_at === null && $record->last_logout_at === null) {
+                            return 'secondary';
+                        }
+
+                        $start = $record->getActiveSessionLastActivity();
+                        $end = $record->getActiveSessionExpiresAt();
+                        $now = Carbon::now(config('app.timezone'));
+
+                        return ($start && $end && $now->between($start, $end))
+                            ? 'success'
+                            : 'warning';
+                    })
                     ->getStateUsing(function (User $record) {
-                        if (! $record->hasActiveSession()) {
+                        if ($record->last_login_at === null && $record->last_logout_at === null) {
                             return 'Tidak login';
                         }
 
                         $start = $record->getActiveSessionLastActivity();
                         $end = $record->getActiveSessionExpiresAt();
+                        $now = Carbon::now(config('app.timezone'));
 
-                        return ($start && $end && now()->between($start, $end))
-                            ? 'Sedang login'
-                            : 'Sesi berakhir';
+                        return ($start && $end && $now->between($start, $end))
+                            ? 'Online'
+                            : 'Offline';
                     })
                     ->description(function (User $record) {
+                        if ($record->last_login_at === null && $record->last_logout_at === null) {
+                            return 'Pengguna belum pernah login';
+                        }
+
                         if (! $record->hasActiveSession()) {
                             return 'Tidak ada sesi login aktif';
                         }
 
                         $start = $record->getActiveSessionLastActivity();
                         $end = $record->getActiveSessionExpiresAt();
+                        $now = Carbon::now(config('app.timezone'));
 
                         if (! $start || ! $end) {
                             return 'Tidak ada sesi login aktif';
                         }
 
-                        if (! now()->between($start, $end)) {
-                            return 'Sesi sudah berakhir';
+                        $start = $start->copy()->setTimezone(config('app.timezone'));
+                        $end = $end->copy()->setTimezone(config('app.timezone'));
+
+                        if (! $now->between($start, $end)) {
+                            return sprintf('Sesi sudah berakhir pada %s', $end->format('H:i'));
                         }
 
-                        $remainingMinutes = now()->diffInMinutes($end, false);
+                        $remainingMinutes = $now->diffInMinutes($end, false);
                         $remainingText = $remainingMinutes > 0
                             ? ($remainingMinutes >= 60
-                                ? intval($remainingMinutes / 60) . ' jam ' . ($remainingMinutes % 60 ? ($remainingMinutes % 60) . ' menit' : '')
+                                ? intval($remainingMinutes / 60) . ' jam' . ($remainingMinutes % 60 ? ' ' . ($remainingMinutes % 60) . ' menit' : '')
                                 : $remainingMinutes . ' menit')
                             : 'kurang dari 1 menit';
 
-                        return "{$start->format('H:i')} - {$end->format('H:i')} (expired dalam waktu {$remainingText})";
+                        return sprintf(
+                            'Login sejak %s • berakhir %s • tersisa %s',
+                            $start->format('H:i'),
+                            $end->format('H:i'),
+                            $remainingText,
+                        );
                     })
                     ->tooltip(function (User $record) {
+                        if ($record->last_login_at === null && $record->last_logout_at === null) {
+                            return 'Pengguna belum pernah login';
+                        }
+
                         if (! $record->hasActiveSession()) {
                             return 'Tidak ada sesi login aktif';
                         }
@@ -186,9 +219,22 @@ class UsersTable
                             return 'Tidak ada sesi login aktif';
                         }
 
-                        return "{$start->format('H:i')} - {$end->format('H:i')}";
+                        $start = $start->copy()->setTimezone(config('app.timezone'));
+                        $end = $end->copy()->setTimezone(config('app.timezone'));
+
+                        return sprintf('%s - %s (WIB)', $start->format('H:i'), $end->format('H:i'));
                     })
                     ->toggleable(),
+
+                TextColumn::make('last_login_at')
+                    ->label('Login Terakhir')
+                    ->dateTime('d M Y H:i')
+                    ->sortable(),
+
+                TextColumn::make('last_logout_at')
+                    ->label('Logout Terakhir')
+                    ->dateTime('d M Y H:i')
+                    ->sortable(),
 
                 // MFA / TWO FACTOR
                 IconColumn::make('mfa_enabled')

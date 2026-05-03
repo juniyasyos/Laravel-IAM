@@ -9,7 +9,7 @@ class AccessProfilesChart extends ApexChartWidget
 {
     protected static ?int $sort = 9;
 
-    protected static ?string $heading = 'Access Profiles Distribution';
+    protected static ?string $heading = 'Role Bundles Distribution';
 
     protected int|string|array $columnSpan = 'full';
 

@@ -9,8 +9,9 @@ use App\Services\Sso\SsoLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
@@ -105,6 +106,12 @@ class AuthenticatedSessionController extends Controller
                     ->with('inactive_reason', $reason);
             }
 
+            Log::warning('auth.login_store_called', [
+                'user_id' => $user->id,
+                'nip' => $user->nip,
+                'email' => $user->email,
+            ]);
+
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
@@ -112,14 +119,44 @@ class AuthenticatedSessionController extends Controller
             session()->put('user_id', $user->id);
 
             if ($request->hasSession() && $request->session()->getId()) {
+                $request->session()->save();
+
                 $sessionModel = Session::find($request->session()->getId());
 
-                if ($sessionModel) {
+                if (! $sessionModel) {
+                    Log::warning('auth.login_session_model_not_found', [
+                        'session_id' => $request->session()->getId(),
+                        'user_id' => $user->id,
+                        'nip' => $user->nip,
+                    ]);
+                } else {
+                    Log::debug('auth.login_session_model_found', [
+                        'session_id' => $sessionModel->id,
+                        'user_id' => $user->id,
+                        'user_id_before' => $sessionModel->getOriginal('user_id'),
+                        'is_active_before' => $sessionModel->getOriginal('is_active'),
+                    ]);
+
                     $sessionModel->user_id = $user->id;
                     $sessionModel->is_active = true;
                     $sessionModel->save();
+
+                    Log::warning('auth.login_session_model_saved', [
+                        'session_id' => $sessionModel->id,
+                        'user_id' => $user->id,
+                        'user_id_after' => $sessionModel->user_id,
+                        'is_active_after' => $sessionModel->is_active,
+                    ]);
                 }
             }
+
+            Log::warning('auth.record_last_login_now', [
+                'user_id' => $user->id,
+                'nip' => $user->nip,
+                'email' => $user->email,
+            ]);
+
+            $user->recordLastLogin();
 
             // Log successful login
             $this->logger->logLoginSuccess(
@@ -198,6 +235,13 @@ class AuthenticatedSessionController extends Controller
         $user = $request->user();
 
         if ($user) {
+            Log::warning('auth.logout_called', [
+                'user_id' => $user->id,
+                'nip' => $user->nip,
+                'email' => $user->email,
+                'session_id' => $request->session()->getId(),
+            ]);
+
             // Log logout
             // $this->logger->logAuthFlow('logout', [
             //     'user_id' => $user->id,
@@ -219,9 +263,27 @@ class AuthenticatedSessionController extends Controller
             if ($request->hasSession() && $request->session()->getId()) {
                 $sessionModel = Session::find($request->session()->getId());
 
-                if ($sessionModel) {
+                if (! $sessionModel) {
+                    Log::warning('auth.logout_session_model_not_found', [
+                        'session_id' => $request->session()->getId(),
+                        'user_id' => $user->id,
+                        'nip' => $user->nip,
+                    ]);
+                } else {
+                    Log::debug('auth.logout_session_model_found', [
+                        'session_id' => $sessionModel->id,
+                        'user_id' => $user->id,
+                        'is_active_before' => $sessionModel->getOriginal('is_active'),
+                    ]);
+
                     $sessionModel->is_active = false;
                     $sessionModel->save();
+
+                    Log::warning('auth.logout_session_model_saved', [
+                        'session_id' => $sessionModel->id,
+                        'user_id' => $user->id,
+                        'is_active_after' => $sessionModel->is_active,
+                    ]);
                 }
             }
 
