@@ -727,7 +727,7 @@ class ApplicationUserSyncService
                 'id' => $user->id,
                 'nip' => $user->nip,
                 'email' => $user->email,
-                'name' => $user->name,
+                'name' => $user->name ?: ($user->nip ?? 'User'),  // Fallback to NIP or generic name
                 'status' => $user->status,
                 'active' => $user->status === 'active',
                 'unit_kerja' => $user->unitKerjas->pluck('unit_name')->toArray(),

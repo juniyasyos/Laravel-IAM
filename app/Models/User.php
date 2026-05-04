@@ -205,8 +205,13 @@ class User extends Authenticatable
                         ->where('user_id', $this->id);
                 })->orWhereIn('id', function ($q) {
                     // Roles via active access profiles
-                    $this->rolesViaAccessProfiles()->select('id')->getQuery()->bindings = [];
-                    $this->rolesViaAccessProfiles();
+                    $q->select('iam_roles.id')
+                        ->from('iam_roles')
+                        ->join('access_profile_role_iam_map', 'access_profile_role_iam_map.role_id', '=', 'iam_roles.id')
+                        ->join('user_access_profiles', 'user_access_profiles.access_profile_id', '=', 'access_profile_role_iam_map.access_profile_id')
+                        ->join('access_profiles', 'access_profiles.id', '=', 'user_access_profiles.access_profile_id')
+                        ->where('user_access_profiles.user_id', $this->id)
+                        ->where('access_profiles.is_active', true);
                 });
             });
     }
