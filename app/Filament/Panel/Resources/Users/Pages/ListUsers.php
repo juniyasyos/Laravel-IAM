@@ -12,10 +12,20 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use App\Actions\ImportUsersFromJsonAction;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListUsers extends ListRecords
 {
     protected static string $resource = UserResource::class;
+
+    /**
+     * OPTIMIZATION: Override to add eager loading and prevent N+1 queries
+     */
+    protected function getTableQuery(): Builder
+    {
+        return parent::getTableQuery()
+            ->withCommonRelations();
+    }
 
     protected function getHeaderActions(): array
     {

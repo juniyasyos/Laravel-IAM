@@ -9,6 +9,7 @@ use App\Observers\SessionObserver;
 use App\Observers\UnitKerjaObserver;
 use App\Observers\UserApplicationRoleObserver;
 use App\Observers\UserObserver;
+use App\Observers\ApplicationObserver;
 use App\Services\AppRegistry;
 use App\Services\Contracts\AppRegistryContract;
 use Illuminate\Contracts\Auth\Access\Gate;
@@ -38,5 +39,6 @@ class AppServiceProvider extends ServiceProvider
         UnitKerja::observe(UnitKerjaObserver::class);
         \App\Domain\Iam\Models\UserApplicationRole::observe(UserApplicationRoleObserver::class);
         \App\Models\UserAccessProfile::observe(\App\Observers\UserAccessProfileObserver::class);
+        \App\Domain\Iam\Models\Application::observe(ApplicationObserver::class);
     }
 }

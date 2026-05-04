@@ -68,6 +68,9 @@ class SessionObserver
             'user_nip' => $user->nip,
             'user_email' => $user->email,
         ]);
+
+        // OPTIMIZATION: Clear user relationship caches when session is deleted
+        $user->clearRelationshipCaches();
     }
 
     private function updateUserLoginState(Session $session, array $original = []): void
@@ -76,7 +79,8 @@ class SessionObserver
             return;
         }
 
-        $user = User::find($session->user_id);
+        // OPTIMIZATION: Use only() to minimize memory footprint of loaded user
+        $user = User::select(['id', 'nip', 'email'])->find($session->user_id);
         if (! $user) {
             Log::warning('session.observer.user_not_found', [
                 'session_id' => $session->id,
@@ -92,7 +96,13 @@ class SessionObserver
                 'user_id' => $user->id,
             ]);
 
-            $user->recordLastLogin();
+            // Re-fetch to get full user object for recording
+            $fullUser = User::find($user->id);
+            if ($fullUser) {
+                $fullUser->recordLastLogin();
+                // Clear the loaded relationship from memory
+                $fullUser->clearRelationshipCaches();
+            }
 
             return;
         }
@@ -102,6 +112,12 @@ class SessionObserver
             'user_id' => $user->id,
         ]);
 
-        $user->recordLastLogout();
+        // Re-fetch to get full user object for recording
+        $fullUser = User::find($user->id);
+        if ($fullUser) {
+            $fullUser->recordLastLogout();
+            // Clear the loaded relationship from memory
+            $fullUser->clearRelationshipCaches();
+        }
     }
 }

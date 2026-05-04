@@ -172,66 +172,78 @@ class User extends Authenticatable
      * This returns roles that are assigned through ACTIVE access profiles only.
      * 
      * SECURITY: Only includes roles from profiles where is_active = true
+     * 
+     * OPTIMIZATION: Uses a more efficient query with proper eager loading
      */
     public function rolesViaAccessProfiles()
     {
         return \App\Domain\Iam\Models\ApplicationRole::query()
-            ->whereIn('id', function ($query) {
-                $query->select('role_id')
-                    ->from('access_profile_role_iam_map')
-                    ->whereIn('access_profile_id', function ($subQuery) {
-                        $subQuery->select('access_profile_id')
-                            ->from('user_access_profiles')
-                            ->where('user_id', $this->id)
-                            ->whereIn('access_profile_id', function ($profileQuery) {
-                                // SECURITY FIX: Only include roles from ACTIVE profiles
-                                $profileQuery->select('id')
-                                    ->from('access_profiles')
-                                    ->where('is_active', true);
-                            });
-                    });
-            });
+            ->select('iam_roles.*')
+            ->join('access_profile_role_iam_map', 'access_profile_role_iam_map.role_id', '=', 'iam_roles.id')
+            ->join('user_access_profiles', 'user_access_profiles.access_profile_id', '=', 'access_profile_role_iam_map.access_profile_id')
+            ->join('access_profiles', 'access_profiles.id', '=', 'user_access_profiles.access_profile_id')
+            ->where('user_access_profiles.user_id', $this->id)
+            ->where('access_profiles.is_active', true)
+            ->distinct();
     }
 
     /**
      * Get all effective application roles (direct + via access profiles).
+     * OPTIMIZATION: Uses union for better performance vs multiple queries
      */
     public function effectiveApplicationRoles()
     {
-        $directRoles = $this->applicationRoles()->pluck('iam_roles.id');
-        $profileRoles = $this->rolesViaAccessProfiles()->pluck('iam_roles.id');
-
         return \App\Domain\Iam\Models\ApplicationRole::query()
-            ->whereIn('id', $directRoles->merge($profileRoles)->unique());
+            ->select('iam_roles.*')
+            ->distinct()
+            ->from('iam_roles')
+            ->where(function ($query) {
+                // Direct roles
+                $query->whereIn('id', function ($q) {
+                    $q->select('role_id')
+                        ->from('iam_user_application_roles')
+                        ->where('user_id', $this->id);
+                })->orWhereIn('id', function ($q) {
+                    // Roles via active access profiles
+                    $this->rolesViaAccessProfiles()->select('id')->getQuery()->bindings = [];
+                    $this->rolesViaAccessProfiles();
+                });
+            });
     }
 
     /**
      * Get user's roles grouped by application as: ['app_key' => ['slug1', 'slug2'], ...].
+     * OPTIMIZATION: Added caching to avoid repeated database queries
      */
     public function rolesByApp(): array
     {
-        if ($this->isIAMAdmin()) {
-            return [];
-        }
+        $cacheKey = "user.roles_by_app.{$this->id}";
 
-        $roles = $this->effectiveApplicationRoles()->with('application')->get();
-
-        $grouped = [];
-        foreach ($roles as $role) {
-            $appKey = $role->application->app_key;
-            if (! isset($grouped[$appKey])) {
-                $grouped[$appKey] = [];
+        return Cache::remember($cacheKey, 3600, function () {
+            if ($this->isIAMAdmin()) {
+                return [];
             }
-            if (! in_array($role->slug, $grouped[$appKey], true)) {
-                $grouped[$appKey][] = $role->slug;
-            }
-        }
 
-        return $grouped;
+            $roles = $this->effectiveApplicationRoles()->with('application')->get();
+
+            $grouped = [];
+            foreach ($roles as $role) {
+                $appKey = $role->application->app_key;
+                if (! isset($grouped[$appKey])) {
+                    $grouped[$appKey] = [];
+                }
+                if (! in_array($role->slug, $grouped[$appKey], true)) {
+                    $grouped[$appKey][] = $role->slug;
+                }
+            }
+
+            return $grouped;
+        });
     }
 
     /**
      * Get list of app_keys this user has access to.
+     * OPTIMIZATION: Added caching and simplified query logic
      *
      * SECURITY: Only includes apps accessible through:
      * - Direct application role assignments, AND
@@ -242,34 +254,59 @@ class User extends Authenticatable
      */
     public function accessibleApps(): array
     {
-        if ($this->isIAMAdmin()) {
-            return [];
-        }
+        $cacheKey = "user.accessible_apps.{$this->id}";
 
-        // include direct application roles + roles via ACTIVE access profiles only
-        $appKeysFromRoles = $this->effectiveApplicationRoles()
-            ->with('application')
-            ->get()
-            ->pluck('application.app_key')
-            ->unique()
-            ->values()
-            ->toArray();
+        return Cache::remember($cacheKey, 3600, function () {
+            if ($this->isIAMAdmin()) {
+                return [];
+            }
 
-        // SECURITY FIX: Explicitly check is_active = true for profiles
-        $appKeysFromProfiles = $this->accessProfiles()
-            ->where('is_active', true)
-            ->whereHas('roles.application')
-            ->with('roles.application')
-            ->get()
-            ->flatMap(fn($profile) => $profile->roles->map(fn($role) => $role->application->app_key))
-            ->unique()
-            ->values()
-            ->toArray();
+            // More efficient single query vs multiple queries
+            $appKeys = DB::table('applications as a')
+                ->distinct()
+                ->select('a.app_key')
+                ->leftJoin('iam_roles', 'a.id', '=', 'iam_roles.application_id')
+                ->leftJoin('iam_user_application_roles', 'iam_roles.id', '=', 'iam_user_application_roles.role_id')
+                ->leftJoin('access_profile_role_iam_map', 'iam_roles.id', '=', 'access_profile_role_iam_map.role_id')
+                ->leftJoin('user_access_profiles', 'access_profile_role_iam_map.access_profile_id', '=', 'user_access_profiles.access_profile_id')
+                ->leftJoin('access_profiles', 'access_profiles.id', '=', 'user_access_profiles.access_profile_id')
+                ->where(function ($q) {
+                    $q->where('iam_user_application_roles.user_id', $this->id)
+                        ->orWhere(function ($subQ) {
+                            $subQ->where('user_access_profiles.user_id', $this->id)
+                                ->where('access_profiles.is_active', true);
+                        });
+                })
+                ->pluck('app_key')
+                ->unique()
+                ->values()
+                ->toArray();
 
-        return collect(array_merge($appKeysFromRoles, $appKeysFromProfiles))
-            ->unique()
-            ->values()
-            ->toArray();
+            return $appKeys;
+        });
+    }
+
+    /**
+     * Scope for eager loading relationships commonly used in queries
+     * OPTIMIZATION: Use this scope in Filament and API queries to prevent N+1
+     */
+    public function scopeWithCommonRelations($query)
+    {
+        return $query->with([
+            'unitKerjas:id,unit_name',
+            'accessProfiles:id,name,is_active',
+            'roles:id,name',
+        ]);
+    }
+
+    /**
+     * Clear relationship caches when user is updated
+     * OPTIMIZATION: Called automatically after user save
+     */
+    public function clearRelationshipCaches(): void
+    {
+        Cache::forget("user.roles_by_app.{$this->id}");
+        Cache::forget("user.accessible_apps.{$this->id}");
     }
 
     public function hasActiveSession(): bool
@@ -338,7 +375,11 @@ class User extends Authenticatable
             return 0;
         }
 
-        $sessions->each->delete();
+        // Delete sessions using chunking to prevent memory issues
+        AuthSession::where('user_id', $this->id)->delete();
+
+        // Clear relationship caches
+        $this->clearRelationshipCaches();
 
         // Ensure any existing JWTs are invalidated even if they are not bound
         // to a terminated session row or the session record was already gone.

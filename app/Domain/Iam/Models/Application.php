@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class Application extends Model
 {
@@ -72,10 +73,25 @@ class Application extends Model
 
     /**
      * Find an application by its key or throw.
+     * OPTIMIZATION: Uses cache to prevent repeated database queries
      */
     public static function findByKey(string $key): self
     {
-        return static::where('app_key', Str::slug($key, '.'))->firstOrFail();
+        $normalizedKey = Str::slug($key, '.');
+        $cacheKey = "app.{$normalizedKey}";
+
+        return Cache::remember($cacheKey, 3600, function () use ($normalizedKey) {
+            return static::where('app_key', $normalizedKey)->firstOrFail();
+        });
+    }
+
+    /**
+     * Clear cache for this application.
+     * OPTIMIZATION: Called when application is updated or deleted
+     */
+    public function clearAppCache(): void
+    {
+        Cache::forget("app.{$this->app_key}");
     }
 
     /**

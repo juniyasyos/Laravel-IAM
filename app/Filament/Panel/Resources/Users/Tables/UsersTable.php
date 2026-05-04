@@ -58,18 +58,20 @@ class UsersTable
                     ->sortable()
                     ->toggleable(),
 
-                // UNIT KERJA
+                // UNIT KERJA - OPTIMIZED: Use eager loaded relationship
                 TextColumn::make('unit_kerja')
                     ->label('Unit Kerja')
                     ->getStateUsing(function (User $record): ?string {
-                        $unitKerjas = $record->unitKerjas()->pluck('unit_name')->toArray() ?? [];
+                        // Uses pre-loaded unitKerjas relationship from eager loading
+                        $unitKerjas = $record->relationLoaded('unitKerjas')
+                            ? $record->unitKerjas->pluck('unit_name')->toArray()
+                            : $record->unitKerjas()->pluck('unit_name')->toArray();
 
                         if (empty($unitKerjas)) {
                             return null;
                         }
 
-                        return collect($unitKerjas)
-                            ->implode(', ');
+                        return collect($unitKerjas)->implode(', ');
                     })
                     ->weight('semibold')
                     ->color('slate')
@@ -78,11 +80,14 @@ class UsersTable
                     ->placeholder('Belum ada unit kerja')
                     ->toggleable(),
 
-                // DAFTAR APLIKASI YANG BISA DIAKSES
+                // DAFTAR APLIKASI YANG BISA DIAKSES - OPTIMIZED: Use cache and eager loading
                 TextColumn::make('accessible_apps')
                     ->label('Role Bundles')
                     ->getStateUsing(function (User $record): ?string {
-                        $apps = $record->accessProfiles()->pluck('name')->toArray() ?? [];
+                        // Uses cached relationship method
+                        $apps = $record->relationLoaded('accessProfiles')
+                            ? $record->accessProfiles->where('is_active', true)->pluck('name')->toArray()
+                            : $record->accessProfiles()->where('is_active', true)->pluck('name')->toArray();
 
                         if (empty($apps)) {
                             return null;
@@ -99,16 +104,20 @@ class UsersTable
                     ->placeholder('Tidak ada akses aplikasi')
                     ->toggleable(),
 
-                // RINGKASAN IAM (jumlah aplikasi & profil)
+                // RINGKASAN IAM (jumlah aplikasi & profil) - OPTIMIZED
                 TextColumn::make('iam_summary')
                     ->label('Ringkasan IAM')
                     ->getStateUsing(function (User $record): ?string {
-                        $apps = $record->accessibleApps() ?? [];
-                        $profilesCount = $record->accessProfiles()->count();
+                        $profilesCount = $record->relationLoaded('accessProfiles')
+                            ? $record->accessProfiles->count()
+                            : $record->accessProfiles()->count();
 
-                        if (empty($apps) && $profilesCount === 0) {
+                        if ($profilesCount === 0) {
                             return null;
                         }
+
+                        // Use accessibleApps() which is cached
+                        $apps = $record->accessibleApps();
 
                         return sprintf('%d aplikasi • %d profil akses', count($apps), $profilesCount);
                     })

@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Jobs\SyncApplicationUsers;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class UserObserver
 {
@@ -62,6 +63,9 @@ class UserObserver
             'updated_attributes' => $user->wasChanged($this->syncAttributes) ? array_keys($user->getChanges()) : [],
         ]);
 
+        // OPTIMIZATION: Clear relationship caches after user save
+        $user->clearRelationshipCaches();
+
         $this->dispatchUserSync($user, 'saved');
     }
 
@@ -85,6 +89,9 @@ class UserObserver
             'timestamp' => now()->toDateTimeString(),
         ]);
 
+        // OPTIMIZATION: Clear relationship caches after user update
+        $user->clearRelationshipCaches();
+
         $this->dispatchUserSync($user, 'updated');
     }
 
@@ -101,6 +108,9 @@ class UserObserver
             'deleted_at' => $user->deleted_at?->toDateTimeString(),
             'timestamp' => now()->toDateTimeString(),
         ]);
+
+        // OPTIMIZATION: Clear relationship caches after user delete
+        $user->clearRelationshipCaches();
 
         $this->dispatchUserSync($user, 'deleted');
     }
@@ -119,11 +129,15 @@ class UserObserver
             'timestamp' => now()->toDateTimeString(),
         ]);
 
+        // OPTIMIZATION: Clear relationship caches after user restore
+        $user->clearRelationshipCaches();
+
         $this->dispatchUserSync($user, 'restored');
     }
 
     /**
      * Triggered from relationship events / role assignment operations.
+     * OPTIMIZATION: Avoid loading all roles and permissions to prevent memory issues
      */
     public function relationshipChanged(User $user, string $note = 'related'): void
     {
@@ -131,13 +145,20 @@ class UserObserver
             return;
         }
 
+        // OPTIMIZATION: Only log count instead of loading all roles/permissions
+        $rolesCount = $user->relationLoaded('roles') ? $user->roles->count() : $user->roles()->count();
+        $permissionsCount = $user->relationLoaded('permissions') ? count($user->getPermissionNames()) : 0;
+
         Log::info('iam.user_observer_relationship_changed', [
             'user_id' => $user->id,
             'note' => $note,
-            'roles' => $user->roles?->pluck('name')->toArray() ?? [],
-            'permissions' => $user->getPermissionNames()->toArray(),
+            'roles_count' => $rolesCount,
+            'permissions_count' => $permissionsCount,
             'timestamp' => now()->toDateTimeString(),
         ]);
+
+        // OPTIMIZATION: Clear relationship caches
+        $user->clearRelationshipCaches();
 
         $this->dispatchUserSync($user, "relationship:{$note}");
     }
@@ -153,6 +174,17 @@ class UserObserver
             'current' => $user->only(array_unique(array_merge(['id'], $this->syncAttributes))),
         ]);
 
-        SyncApplicationUsers::dispatch([], [], [], $user->id);
+        // OPTIMIZATION: Batch job dispatch using cache like UserAccessProfileObserver
+        $cacheKey = "pending_sync_user.{$user->id}";
+        if (!Cache::has($cacheKey)) {
+            Cache::put($cacheKey, true, 5);
+            SyncApplicationUsers::dispatch([], [], [], $user->id);
+        } else {
+            Log::debug('iam.user_observer_sync_batched', [
+                'user_id' => $user->id,
+                'event' => $event,
+                'reason' => 'Job already scheduled recently',
+            ]);
+        }
     }
 }
