@@ -167,10 +167,10 @@ class ApplicationsTable
                                 ->send();
                         }),
                     Action::make('syncUsers')
-                        ->label('Sync Users')
+                        ->label('Sync Users This App')
                         ->icon('heroicon-o-user-group')
                         ->color('primary')
-                        ->authorize(fn() => false)
+                        ->requiresConfirmation()
                         ->action(function (Application $record): void {
                             // gather all access profiles that reference roles from this
                             // specific application and send their ids to the job. this
@@ -182,7 +182,7 @@ class ApplicationsTable
                                 })
                                 ->pluck('id')
                                 ->toArray();
-                            
+
                             SyncApplicationUsers::dispatch($record, $profileIds);
                             Notification::make()
                                 ->title('User sync job queued')
