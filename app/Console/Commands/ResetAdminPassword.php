@@ -35,17 +35,19 @@ class ResetAdminPassword extends Command
             return self::FAILURE;
         }
 
-        $user = User::where('nip', '0000.00000')->first();
+        $user = User::firstOrNew(['nip' => '0000.00000']);
+        $isNew = ! $user->exists;
 
-        if (! $user) {
-            $this->error('Admin user with NIP 0000.00000 was not found.');
-            return self::FAILURE;
+        if ($isNew) {
+            $user->name = 'Admin';
+            $user->email = $user->email ?: null;
+            $user->status = $user->status ?: 'active';
         }
 
         $user->password = Hash::make($password);
         $user->save();
 
-        $this->info('✅ Admin password updated successfully.');
+        $this->info($isNew ? '✅ Admin user created and password set successfully.' : '✅ Admin password updated successfully.');
         $this->line('NIP: 0000.00000');
         $this->line("New password: {$password}");
 

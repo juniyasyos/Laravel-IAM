@@ -30,8 +30,8 @@ class ApplicationsSeeder extends Seeder
             //     'created_by' => $admin?->id,
             // ],
             [
-                'app_key' => 'ikp',
-                'name' => 'IKP - Incident Reporting System', 
+                'app_key' => 'incident-reporting',
+                'name' => 'IKP - Incident Reporting System',
                 'description' => 'Sistem Pelaporan Insiden Kerja',
                 'enabled' => true,
                 'redirect_uris' => [
