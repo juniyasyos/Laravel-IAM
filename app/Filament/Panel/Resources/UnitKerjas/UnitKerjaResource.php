@@ -7,6 +7,7 @@ use App\Filament\Panel\Resources\UnitKerjas\Pages\EditUnitKerja;
 use App\Filament\Panel\Resources\UnitKerjas\Pages\ListUnitKerjas;
 use App\Filament\Panel\Resources\UnitKerjas\Schemas\UnitKerjaForm;
 use App\Filament\Panel\Resources\UnitKerjas\Tables\UnitKerjasTable;
+use App\Models\UnitKerja;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -15,14 +16,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class UnitKerjaResource extends Resource
 {
-    protected static ?string $model = null;
+    protected static ?string $model = UnitKerja::class;
 
     protected static ?string $slug = 'unit-kerjas';
-
-    public static function getModel(): string
-    {
-        return config('manage-unit-kerja.model.unit_kerja', parent::getModel());
-    }
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';
 

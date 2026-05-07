@@ -27,10 +27,8 @@ class UnitKerja extends Model
 
     public static function isCrudAllowed(): bool
     {
-        $center = (bool) config('manage-unit-kerja.center_application', false);
-        $appEnv = (string) config('manage-unit-kerja.app_env', app()->environment());
-
-        return $center || in_array(strtolower($appEnv), ['local', 'dev', 'development'], true) || app()->environment('local');
+        // return (bool) config('iam.sync_unit_kerja', true);
+        return true;
     }
 
     protected static function boot()

@@ -17,10 +17,6 @@ function unitKerjaImportFixture(): array
     );
 }
 
-beforeEach(function () {
-    config(['manage-unit-kerja.center_application' => true]);
-});
-
 it('imports the provided json payload and restores matching soft deleted records', function () {
     $data = unitKerjaImportFixture();
 
