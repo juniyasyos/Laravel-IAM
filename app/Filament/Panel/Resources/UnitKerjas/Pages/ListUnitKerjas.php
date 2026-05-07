@@ -85,7 +85,7 @@ class ListUnitKerjas extends ListRecords
 
                         Notification::make()
                             ->title('Import unit kerja dijadwalkan')
-                            ->body('Progres import akan tampil di komponen melayang saat job berjalan. APP_URL: ' . config('app.url'))
+                            ->body('Progres import akan tampil di komponen melayang saat job berjalan. File Path Upload: ' . $timestampedName)
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {

@@ -11,6 +11,7 @@ use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -84,7 +85,10 @@ class ListUsers extends ListRecords
 
                         // Copy to a predictable filename and remove the original hashed upload name
                         $disk->copy($fileName, $timestampedName);
-                        $disk->delete($fileName);
+
+                        if (Config::boolean('iam.imports.delete_source_after_import')) {
+                            $disk->delete($fileName);
+                        }
 
                         ImportUsersFromJsonJob::dispatch($timestampedName, $userId);
 
@@ -102,7 +106,7 @@ class ListUsers extends ListRecords
                     }
                 })
                 ->modalHeading('Import Pengguna dari JSON')
-                ->modalDescription('Upload file JSON berisi data pengguna untuk di-import. Data disimpan di MinIO dan akan dihapus setelah import selesai.')
+                ->modalDescription('Upload file JSON berisi data pengguna untuk di-import. File sumber dapat dipertahankan atau dihapus sesuai konfigurasi import.')
                 ->modalSubmitActionLabel('Import')
                 ->modalWidth('2xl'),
 

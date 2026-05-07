@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -118,7 +119,9 @@ class ImportUsersFromJsonJob implements ShouldQueue
                     ->danger()
             );
         } finally {
-            Storage::disk('s3')->delete($this->filePath);
+            if (Config::boolean('iam.imports.delete_source_after_import')) {
+                Storage::disk('s3')->delete($this->filePath);
+            }
         }
     }
 

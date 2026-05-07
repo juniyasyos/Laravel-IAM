@@ -382,4 +382,18 @@ return [
         'denied_redirect' => env('IAM_ADMIN_DENIED_REDIRECT', null), // null = show 403, or '/' for home
     ],
 
+    /*
+    |------------------------------------------------------------------------
+    | Import settings
+    |------------------------------------------------------------------------
+    |
+    | Controls for JSON import jobs.
+    | - delete_source_after_import: when true, uploaded source file is removed
+    |   from MinIO/S3 after job finishes.
+    |
+    */
+    'imports' => [
+        'delete_source_after_import' => env('IAM_IMPORT_DELETE_SOURCE_AFTER_IMPORT', false),
+    ],
+
 ];
