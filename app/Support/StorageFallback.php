@@ -8,11 +8,17 @@ use Illuminate\Support\Facades\Storage;
 
 class StorageFallback
 {
+    protected static ?bool $s3Available = null;
+
     /**
      * Cek apakah S3 (MinIO) dapat diakses dan bucket tersedia.
      */
     public static function isS3Available(bool $checkBucket = true): bool
     {
+        if (static::$s3Available !== null) {
+            return static::$s3Available;
+        }
+
         try {
             $s3Config = config('filesystems.disks.s3');
 
@@ -44,12 +50,12 @@ class StorageFallback
                 $client->listBuckets();
             }
 
-            return true;
+            return static::$s3Available = true;
         } catch (\Throwable $e) {
             // Log at debug level to avoid noisy logs in production
             Log::debug('S3 availability check failed: ' . $e->getMessage());
 
-            return false;
+            return static::$s3Available = false;
         }
     }
 }

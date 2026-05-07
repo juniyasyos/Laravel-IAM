@@ -29,6 +29,12 @@ class AccessProfilesTable
                     ->sortable()
                     ->weight('bold')
                     ->description(fn($record) => str($record->description)->limit(100)),
+                TextColumn::make('key_hash')
+                    ->label('Identifier')
+                    ->fontFamily('mono')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('slug')
                     ->label('Slug')
                     ->searchable()
@@ -49,7 +55,7 @@ class AccessProfilesTable
                     ->badge()
                     ->color('success')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false ),
+                    ->toggleable(isToggledHiddenByDefault: false),
                 IconColumn::make('is_system')
                     ->label('System')
                     ->boolean()

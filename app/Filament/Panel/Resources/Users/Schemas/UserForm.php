@@ -3,6 +3,7 @@
 namespace App\Filament\Panel\Resources\Users\Schemas;
 
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -11,6 +12,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Str;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rules\Password;
 
@@ -42,7 +45,7 @@ class UserForm
                                                     ->autocapitalize('words')
                                                     ->autocomplete('name')
                                                     ->helperText('Nama lengkap sesuai identitas resmi.')
-                                                    ->suffixIcon('heroicon-m-user'),
+                                                    ->prefixIcon('heroicon-m-user'),
 
                                                 TextInput::make('nip')
                                                     ->label('NIP')
@@ -55,7 +58,7 @@ class UserForm
                                                     ->placeholder('199101012020031001')
                                                     ->autocomplete('username')
                                                     ->helperText('Nomor Induk Pegawai sebagai identitas login.')
-                                                    ->suffixIcon('heroicon-m-identification'),
+                                                    ->prefixIcon('heroicon-m-identification'),
                                             ]),
 
                                         Grid::make(1)
@@ -72,7 +75,7 @@ class UserForm
                                                     )
                                                     ->placeholder('email@domain.com')
                                                     ->helperText('Email opsional untuk notifikasi dan pemulihan akun.')
-                                                    ->suffixIcon('heroicon-m-envelope'),
+                                                    ->prefixIcon('heroicon-m-envelope'),
                                             ]),
                                     ]),
 
@@ -85,7 +88,7 @@ class UserForm
                                                     ->label('Tempat Lahir')
                                                     ->placeholder('Jakarta')
                                                     ->helperText('Kota atau kabupaten tempat lahir.')
-                                                    ->suffixIcon('heroicon-m-map-pin'),
+                                                    ->prefixIcon('heroicon-m-map-pin'),
 
                                                 DatePicker::make('date_of_birth')
                                                     ->label('Tanggal Lahir')
@@ -110,7 +113,7 @@ class UserForm
                                                     ->nullable()
                                                     ->placeholder('+62 812 3456 7890')
                                                     ->helperText('Nomor telepon yang dapat dihubungi.')
-                                                    ->suffixIcon('heroicon-m-phone'),
+                                                    ->prefixIcon('heroicon-m-phone'),
                                             ]),
 
                                         Textarea::make('address_ktp')
@@ -139,8 +142,17 @@ class UserForm
                                                             ? 'Minimal 8 karakter'
                                                             : 'Kosongkan jika tidak diubah'
                                                     )
+                                                    ->default('rschjaya1234')
                                                     ->helperText('Kosongkan saat edit jika tidak ingin mengganti password.')
-                                                    ->suffixIcon('heroicon-m-key'),
+                                                    ->prefixIcon('heroicon-m-key')
+                                                    ->suffixAction(
+                                                        Action::make('generatePassword')
+                                                            ->icon('heroicon-m-sparkles')
+                                                            ->tooltip('Generate password random')
+                                                            ->action(function (Set $set): void {
+                                                                $set('password', Str::random(12));
+                                                            })
+                                                    ),
 
                                                 Select::make('status')
                                                     ->label('Status')
@@ -189,6 +201,7 @@ class UserForm
                             ]),
 
                         Section::make('Informasi Sistem')
+                            ->hidden(fn($operation) => $operation === 'create')
                             ->schema([
                                 TextInput::make('created_at')
                                     ->label('Dibuat')

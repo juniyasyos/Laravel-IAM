@@ -28,6 +28,14 @@ class AccessProfileForm
                         Section::make('Bundle Identity')
                             ->description('Create a named bundle that combines related roles from different applications. This bundle can be assigned to users as a single unit.')
                             ->schema([
+                                TextInput::make('key_hash')
+                                    ->label('Identifier')
+                                    ->maxLength(64)
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->helperText('Generated automatically once and cannot be changed.')
+                                    ->suffixIcon('heroicon-m-finger-print'),
+
                                 Grid::make(2)->schema([
                                     TextInput::make('name')
                                         ->label('Bundle Name')

@@ -2,12 +2,16 @@
 
 namespace App\Filament\Panel\Resources\UnitKerjas\Pages;
 
+use App\Jobs\ImportUnitKerjasFromJsonJob;
 use App\Filament\Panel\Resources\UnitKerjas\UnitKerjaResource;
 use App\Jobs\PushUnitKerjaToClient;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ListUnitKerjas extends ListRecords
 {
@@ -19,6 +23,76 @@ class ListUnitKerjas extends ListRecords
             CreateAction::make()
                 ->label('Tambah Data')
                 ->icon('heroicon-m-plus'),
+
+            Action::make('importFromJson')
+                ->label('Import Unit Kerja (JSON)')
+                ->icon('heroicon-m-arrow-down-tray')
+                ->color('success')
+                ->schema([
+                    \Filament\Forms\Components\FileUpload::make('json_file')
+                        ->label('Upload File JSON')
+                        ->acceptedFileTypes(['application/json'])
+                        ->maxSize(5120)
+                        ->disk('s3')
+                        ->directory('imports')
+                        ->visibility('private')
+                        ->required()
+                        ->helperText('Format: JSON array berisi data unit kerja. Max 5MB.'),
+
+                    \Filament\Forms\Components\Toggle::make('skip_errors')
+                        ->label('Lanjutkan meski ada error')
+                        ->default(true)
+                        ->helperText('Jika aktif, import akan tetap berjalan meski ada data yang gagal.'),
+                ])
+                ->action(function (array $data): void {
+                    try {
+                        $fileName = $data['json_file'];
+
+                        if (! Storage::disk('s3')->exists($fileName)) {
+                            Notification::make()
+                                ->title('File tidak ditemukan di MinIO')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        $jsonContent = Storage::disk('s3')->get($fileName);
+                        $unitsData = json_decode($jsonContent, true);
+
+                        if (! is_array($unitsData)) {
+                            Notification::make()
+                                ->title('Format JSON tidak valid')
+                                ->body('File harus berisi array JSON unit kerja.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        $importId = (string) Str::uuid();
+                        $userId = (int) auth()->id();
+                        $skipErrors = (bool) ($data['skip_errors'] ?? true);
+
+                        ImportUnitKerjasFromJsonJob::dispatch($importId, $fileName, $userId, $skipErrors);
+
+                        Notification::make()
+                            ->title('Import unit kerja dijadwalkan')
+                            ->body('Progres import akan tampil di komponen melayang saat job berjalan.')
+                            ->success()
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Error saat import')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                })
+                ->modalHeading('Import Unit Kerja dari JSON')
+                ->modalDescription('Upload file JSON berisi daftar unit kerja. Data akan di-upsert untuk mengurangi duplikasi.')
+                ->modalSubmitActionLabel('Import')
+                ->modalWidth('2xl'),
 
             Action::make('syncAllUnitKerja')
                 ->label('Sinkronisasi Semua Unit Kerja ke Client')

@@ -5,6 +5,7 @@ namespace App\Domain\Iam\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class AccessProfile extends Model
 {
@@ -14,6 +15,7 @@ class AccessProfile extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'key_hash',
         'slug',
         'name',
         'description',
@@ -65,6 +67,28 @@ class AccessProfile extends Model
     protected static function newFactory()
     {
         return \Database\Factories\AccessProfileFactory::new();
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $accessProfile): void {
+            $accessProfile->key_hash = self::generateKeyHash();
+        });
+
+        static::updating(function (self $accessProfile): void {
+            if ($accessProfile->isDirty('key_hash')) {
+                $accessProfile->key_hash = $accessProfile->getOriginal('key_hash');
+            }
+        });
+    }
+
+    public static function generateKeyHash(): string
+    {
+        do {
+            $keyHash = hash('sha256', (string) Str::ulid());
+        } while (static::where('key_hash', $keyHash)->exists());
+
+        return $keyHash;
     }
 
     /**

@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\UserInfoController;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Redirect;
 
 // Root route - redirect based on auth status
 Route::get('/', function () {

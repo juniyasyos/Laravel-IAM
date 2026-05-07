@@ -169,7 +169,7 @@
 
 /* Override for specific width classes if needed */
 .fi-main:not([class*="fi-width-"]) {
-  @apply max-w-7xl;
+  @apply max-w-7xl mx-auto;
 }
 
 /* Responsive max-width adjustments */

@@ -94,7 +94,7 @@ class IkpAccessProfileSeeder extends Seeder
                 if (! empty($roleIds)) {
                     // Get siimut app ID
                     $siimutAppId = $applications['siimut'] ?? null;
-                    $ikpAppId = $applications['ikp'] ?? null;
+                    $ikpAppId = $applications['incident-reporting'] ?? null;
 
                     // Get existing roles that are NOT from IKP
                     $existingRoleIds = $profile->roles()->pluck('iam_roles.id')->toArray();
