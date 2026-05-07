@@ -48,7 +48,9 @@ class ListUnitKerjas extends ListRecords
                     try {
                         $fileName = $data['json_file'];
 
-                        if (! Storage::disk('s3')->exists($fileName)) {
+                        $disk = Storage::disk('s3');
+
+                        if (! $disk->exists($fileName)) {
                             Notification::make()
                                 ->title('File tidak ditemukan di MinIO')
                                 ->danger()
@@ -57,7 +59,12 @@ class ListUnitKerjas extends ListRecords
                             return;
                         }
 
-                        $jsonContent = Storage::disk('s3')->get($fileName);
+                        // Move to a predictable timestamped filename to avoid hashed names
+                        $timestampedName = sprintf('imports/import_unitkerja_' . config('app.url') . '_%s.json', now()->format('Ymd_His'));
+                        $disk->copy($fileName, $timestampedName);
+                        $disk->delete($fileName);
+
+                        $jsonContent = $disk->get($timestampedName);
                         $unitsData = json_decode($jsonContent, true);
 
                         if (! is_array($unitsData)) {
@@ -74,11 +81,11 @@ class ListUnitKerjas extends ListRecords
                         $userId = (int) auth()->id();
                         $skipErrors = (bool) ($data['skip_errors'] ?? true);
 
-                        ImportUnitKerjasFromJsonJob::dispatch($importId, $fileName, $userId, $skipErrors);
+                        ImportUnitKerjasFromJsonJob::dispatch($importId, $timestampedName, $userId, $skipErrors);
 
                         Notification::make()
                             ->title('Import unit kerja dijadwalkan')
-                            ->body('Progres import akan tampil di komponen melayang saat job berjalan.')
+                            ->body('Progres import akan tampil di komponen melayang saat job berjalan. APP_URL: ' . config('app.url'))
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {

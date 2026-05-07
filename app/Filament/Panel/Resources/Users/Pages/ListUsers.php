@@ -59,13 +59,16 @@ class ListUsers extends ListRecords
                     try {
                         $fileName = $data['json_file'];
 
-                        if (!Storage::disk('s3')->exists($fileName)) {
+                        $disk = Storage::disk('s3');
+
+                        if (! $disk->exists($fileName)) {
                             Notification::make()
                                 ->title('File tidak ditemukan di MinIO')
                                 ->danger()
                                 ->send();
                             return;
                         }
+
                         $userId = auth()->id();
 
                         if (! $userId) {
@@ -77,11 +80,17 @@ class ListUsers extends ListRecords
                             return;
                         }
 
-                        ImportUsersFromJsonJob::dispatch($fileName, $userId);
+                        $timestampedName = sprintf('imports/import_users_'. config('app.url').'_%s.json', now()->format('Ymd_His'));
+
+                        // Copy to a predictable filename and remove the original hashed upload name
+                        $disk->copy($fileName, $timestampedName);
+                        $disk->delete($fileName);
+
+                        ImportUsersFromJsonJob::dispatch($timestampedName, $userId);
 
                         Notification::make()
                             ->title('Job import pengguna dijadwalkan')
-                            ->body('Anda akan menerima notifikasi setelah proses selesai.')
+                            ->body('Anda akan menerima notifikasi setelah proses selesai. APP_URL: ' . config('app.url'))
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {
