@@ -25,6 +25,8 @@ use App\Filament\Panel\Resources\Users\RelationManagers\AccessProfilesRelationMa
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Tables\Enums\FiltersLayout;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Storage;
 
 class UsersTable
 {
@@ -39,6 +41,7 @@ class UsersTable
             ->striped()
             ->persistFiltersInSession()
             ->persistSearchInSession()
+            ->headerActions(self::headerActions())
             ->searchPlaceholder('Cari nama, NIP, atau email pengguna...')
             ->columns([
 
@@ -532,5 +535,26 @@ class UsersTable
             ->emptyStateIcon('heroicon-m-user-group')
             ->emptyStateHeading('Belum ada user')
             ->emptyStateDescription('Tambahkan user baru atau ubah filter pencarian untuk melihat data.');
+    }
+
+    public static function headerActions(): array
+    {
+        return [
+            Action::make('exportUsersJson')
+                ->label('Unduh JSON')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->action(function () {
+                    $relativePath = 'exports/users.json';
+
+                    Artisan::call('users:export-json', ['--path' => $relativePath]);
+
+                    return Storage::disk('local')->download(
+                        $relativePath,
+                        'users.json',
+                        ['Content-Type' => 'application/json']
+                    );
+                })
+                // ->visible(fn() => Gate::allows('export', User::class)),
+        ];
     }
 }

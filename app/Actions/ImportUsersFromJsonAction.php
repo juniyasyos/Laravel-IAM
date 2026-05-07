@@ -72,6 +72,11 @@ class ImportUsersFromJsonAction
                 if (! empty($userData['roles']) && is_array($userData['roles'])) {
                     $this->syncAccessProfiles($user, $userData['roles'], $accessProfilesNotFound);
                 }
+                
+                // Handle access profiles assignment (mapped from "syncAccessProfiles" key)
+                if (! empty($userData['accessProfiles']) && is_array($userData['accessProfiles'])) {
+                    $this->syncAccessProfiles($user, $userData['accessProfiles'], $accessProfilesNotFound);
+                }
 
                 // Handle unit_kerjas assignment
                 if (! empty($userData['unit_kerjas']) && is_array($userData['unit_kerjas'])) {
@@ -81,28 +86,28 @@ class ImportUsersFromJsonAction
                 // Refresh relasi terbaru
                 $user->load(['accessProfiles', 'unitKerjas']);
 
-                $afterData = [
-                    'user' => $user->toArray(),
-                    'roles' => $user->accessProfiles
-                        ->pluck('name')
-                        ->toArray(),
-                    'unit_kerjas' => $user->unitKerjas
-                        ->pluck('name')
-                        ->toArray(),
-                ];
+                // $afterData = [
+                //     'user' => $user->toArray(),
+                //     'roles' => $user->accessProfiles
+                //         ->pluck('name')
+                //         ->toArray(),
+                //     'unit_kerjas' => $user->unitKerjas
+                //         ->pluck('name')
+                //         ->toArray(),
+                // ];
 
-                if ($userData['name'] == 'Agung Sunaryo, S.Kom') {
-                    dd([
-                        'action' => $actionType,
-                        'is_created' => $user->wasRecentlyCreated,
+                // if ($userData['name'] == 'Agung Sunaryo, S.Kom') {
+                //     dd([
+                //         'action' => $actionType,
+                //         'is_created' => $user->wasRecentlyCreated,
 
-                        'before' => $beforeData,
+                //         'before' => $beforeData,
 
-                        'after' => $afterData,
+                //         'after' => $afterData,
 
-                        'incoming_payload' => $userData,
-                    ]);
-                }
+                //         'incoming_payload' => $userData,
+                //     ]);
+                // }
 
                 DB::commit();
             } catch (Throwable $e) {
