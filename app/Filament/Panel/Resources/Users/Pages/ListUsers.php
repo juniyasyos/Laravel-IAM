@@ -2,9 +2,9 @@
 
 namespace App\Filament\Panel\Resources\Users\Pages;
 
+use App\Actions\ImportUsersFromJsonAction;
 use App\Domain\Iam\Models\Application;
 use App\Filament\Panel\Resources\Users\UserResource;
-use App\Jobs\ImportUsersFromJsonJob;
 use App\Jobs\SyncApplicationUsers;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -56,7 +56,7 @@ class ListUsers extends ListRecords
                         ->default(true)
                         ->helperText('Jika aktif, import akan terus berjalan meski ada baris yang gagal.'),
                 ])
-                ->action(function (array $data): void {
+                ->action(function (array $data, ImportUsersFromJsonAction $importAction): void {
                     try {
                         $fileName = $data['json_file'];
 
@@ -74,8 +74,7 @@ class ListUsers extends ListRecords
 
                         if (! $userId) {
                             Notification::make()
-                                ->title('Gagal menjadwalkan import')
-                                ->body('Pengguna tidak terautentikasi.')
+                                ->title('Pengguna tidak terautentikasi')
                                 ->danger()
                                 ->send();
                             return;
@@ -86,15 +85,73 @@ class ListUsers extends ListRecords
                         // Copy to a predictable filename and remove the original hashed upload name
                         $disk->copy($fileName, $timestampedName);
 
-                        if (Config::boolean('iam.imports.delete_source_after_import')) {
-                            $disk->delete($fileName);
+                        if (! $disk->exists($timestampedName)) {
+                            throw new \RuntimeException('File import pengguna tidak ditemukan di storage.');
                         }
 
-                        ImportUsersFromJsonJob::dispatch($timestampedName, $userId);
+                        $jsonContent = $disk->get($timestampedName);
+                        $usersData = json_decode($jsonContent, true);
+
+                        if (! is_array($usersData)) {
+                            throw new \InvalidArgumentException('Format JSON tidak valid untuk import pengguna.');
+                        }
+
+                        $result = $importAction->execute($usersData);
+
+                        $message = sprintf(
+                            'Total: %d | Dibuat: %d | Diperbarui: %d | Gagal: %d',
+                            $result['total'],
+                            $result['created'],
+                            $result['updated'],
+                            $result['failed']
+                        );
+
+                        $warningLines = [];
+
+                        if (! empty($result['warnings']['access_profiles_not_found'])) {
+                            $warningLines[] = 'Access profile tidak ditemukan: ' . implode(', ', $result['warnings']['access_profiles_not_found']);
+                        }
+
+                        if (! empty($result['warnings']['unit_kerjas_not_found'])) {
+                            $warningLines[] = 'Unit kerja tidak ditemukan: ' . implode(', ', $result['warnings']['unit_kerjas_not_found']);
+                        }
+
+                        $warningMessage = empty($warningLines)
+                            ? ''
+                            : "\n\nWarning:\n" . implode("\n", $warningLines);
+
+                        if ($result['failed'] > 0) {
+                            $errorDetails = collect($result['errors'])
+                                ->map(fn($err) => sprintf(
+                                    'Baris %d (%s): %s',
+                                    $err['row'],
+                                    $err['nip'],
+                                    $err['error']
+                                ))
+                                ->join("\n");
+
+                            Notification::make()
+                                ->title('Import Pengguna Selesai dengan Catatan')
+                                ->body($message . $warningMessage . "\n\nError:\n" . $errorDetails)
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
+                        if ($warningMessage !== '') {
+                            Notification::make()
+                                ->title('Import Pengguna Selesai dengan Catatan')
+                                ->body($message . $warningMessage)
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
-                            ->title('Job import pengguna dijadwalkan')
-                            ->body('Anda akan menerima notifikasi setelah proses selesai. APP_URL: ' . config('app.url'))
+                            ->title('Import Pengguna Selesai')
+                            ->body($message)
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {
@@ -103,6 +160,10 @@ class ListUsers extends ListRecords
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
+                    } finally {
+                        if (Config::boolean('iam.imports.delete_source_after_import')) {
+                            Storage::disk('s3')->delete($timestampedName ?? null);
+                        }
                     }
                 })
                 ->modalHeading('Import Pengguna dari JSON')

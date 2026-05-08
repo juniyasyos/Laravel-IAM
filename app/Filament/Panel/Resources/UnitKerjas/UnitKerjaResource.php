@@ -82,10 +82,16 @@ class UnitKerjaResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->heading('Kelola Unit Kerja')
+            ->defaultSort('updated_at', 'desc')
             ->poll('2s')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->headerActions(UnitKerjasTable::headerActions())
             ->columns(UnitKerjasTable::columns())
             ->filters(UnitKerjasTable::filters())
-            ->headerActions(UnitKerjasTable::headerActions())
             ->actions(UnitKerjasTable::actions())
             ->bulkActions(UnitKerjasTable::bulkActions());
     }
