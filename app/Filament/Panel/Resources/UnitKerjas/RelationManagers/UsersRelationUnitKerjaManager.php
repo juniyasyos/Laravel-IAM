@@ -92,7 +92,7 @@ class UsersRelationUnitKerjaManager extends RelationManager
                         if (! $record instanceof User) {
                             return;
                         }
-
+                        
                         app(UserObserver::class)->relationshipChanged($record, 'unit_kerja:detached');
                     }),
             ])
