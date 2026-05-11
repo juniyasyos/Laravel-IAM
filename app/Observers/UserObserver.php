@@ -174,6 +174,11 @@ class UserObserver
             return;
         }
 
+        // Track deleted unit_kerja relations for push users payload
+        if (str_contains($note, 'unit_kerja:detached')) {
+            $this->trackDetachedUnitKerja($user);
+        }
+
         // OPTIMIZATION: Only log count instead of loading all roles/permissions
         $rolesCount = $user->relationLoaded('roles') ? $user->roles->count() : $user->roles()->count();
         $permissionsCount = $user->relationLoaded('permissions') ? count($user->getPermissionNames()) : 0;
@@ -215,5 +220,66 @@ class UserObserver
                 'reason' => 'Job already scheduled recently',
             ]);
         }
+    }
+
+    /**
+     * Track detached unit_kerja relations in cache for push users payload.
+     * When a user is detached from unit_kerja via Filament, store this info
+     * so it can be included in the next push users payload to clients.
+     */
+    protected function trackDetachedUnitKerja(User $user): void
+    {
+        if (! method_exists($user, 'unitKerjas')) {
+            return;
+        }
+
+        // Get current unit_kerja relationships (after detach, these are what remains)
+        $currentUnitIds = $user->unitKerjas()->pluck('id')->toArray();
+
+        // Get cached previous unit_kerja IDs for this user
+        $cacheKey = "user_unit_kerja_detached:{$user->id}";
+        $previousUnitIds = \Illuminate\Support\Facades\Cache::get($cacheKey, []);
+
+        // Find detached unit IDs (were in previous, not in current)
+        $detachedUnitIds = array_diff($previousUnitIds, $currentUnitIds);
+
+        if (! empty($detachedUnitIds)) {
+            // Store detached relations in cache for push users to pick up
+            $detachedRelations = [];
+            foreach ($detachedUnitIds as $unitId) {
+                $unit = \App\Models\UnitKerja::withTrashed()->find($unitId);
+                if ($unit) {
+                    $detachedRelations[] = [
+                        'user_id' => $user->id,
+                        'user_nip' => $user->nip,
+                        'user_email' => $user->email,
+                        'unit_kerja_id' => $unitId,
+                        'unit_slug' => $unit->slug,
+                        'detached_at' => now()->toIso8601String(),
+                    ];
+                }
+            }
+
+            if (! empty($detachedRelations)) {
+                $pushCacheKey = "deleted_user_unit_kerja_for_push";
+                $allDeleted = \Illuminate\Support\Facades\Cache::get($pushCacheKey, []);
+
+                // Add to existing detached relations (merge with new ones)
+                $allDeleted = array_merge($allDeleted, $detachedRelations);
+
+                // Store for 24 hours
+                \Illuminate\Support\Facades\Cache::put($pushCacheKey, $allDeleted, now()->addDay());
+
+                Log::info('iam.user_unit_kerja_detached_tracked', [
+                    'user_id' => $user->id,
+                    'user_nip' => $user->nip,
+                    'detached_unit_ids' => $detachedUnitIds,
+                    'count' => count($detachedRelations),
+                ]);
+            }
+        }
+
+        // Update cached current unit IDs for next comparison
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $currentUnitIds, now()->addDay());
     }
 }

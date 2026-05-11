@@ -780,6 +780,13 @@ class ApplicationUserSyncService
 
         try {
             $payload = ['users' => $users];
+
+            // Include deleted user_unit_kerja relations if they exist in cache
+            $deletedRelations = $this->getDeletedUserUnitKerjaRelations();
+            if (! empty($deletedRelations)) {
+                $payload['deleted_user_unit_kerja'] = $deletedRelations;
+            }
+
             $jsonBody = json_encode($payload);
 
             if (! config('iam.backchannel_verify', true)) {
@@ -944,5 +951,26 @@ class ApplicationUserSyncService
         }
 
         return $domain . '/api/iam/sync-users?app_key=' . urlencode($appKey);
+    }
+
+    /**
+     * Retrieve deleted user_unit_kerja relations from cache.
+     * These were tracked when users were detached from unit_kerja.
+     */
+    protected function getDeletedUserUnitKerjaRelations(): array
+    {
+        $cacheKey = "deleted_user_unit_kerja_for_push";
+        $deletedRelations = \Illuminate\Support\Facades\Cache::get($cacheKey, []);
+
+        // Clear cache after retrieval
+        if (! empty($deletedRelations)) {
+            \Illuminate\Support\Facades\Cache::forget($cacheKey);
+
+            Log::info('iam.deleted_user_unit_kerja_included_in_push', [
+                'count' => count($deletedRelations),
+            ]);
+        }
+
+        return $deletedRelations;
     }
 }
