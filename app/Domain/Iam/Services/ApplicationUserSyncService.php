@@ -53,7 +53,7 @@ class ApplicationUserSyncService
      */
     public function syncUsers(Application $application, ?int $userId = null): array
     {
-        $mode = config('iam.user_sync_mode', 'pull');
+        $mode = setting('iam.user_sync_mode', 'pull');
 
         if ($mode === 'push') {
             return $this->pushUsersToClient($application, $userId);
@@ -117,7 +117,8 @@ class ApplicationUserSyncService
             } else {
                 $changesBefore = $user->only(['nip', 'name', 'email', 'status']);
 
-                $forcePull = config('iam.user_sync_force_pull', false);
+                $forcePull = setting('iam.user_sync_force_pull', false);
+                                $forcePull = setting('iam.user_sync_force_pull', false);
                 $resolvedStatus = $this->resolveStatusValue($cUser, $user->status);
 
                 if ($forcePull) {
@@ -374,12 +375,12 @@ class ApplicationUserSyncService
             $payload = ['users' => $users];
             $jsonBody = json_encode($payload);
 
-            if (! config('iam.backchannel_verify', true)) {
+            if (! setting('iam.backchannel_verify', true)) {
                 $response = Http::timeout(50)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->withBody($jsonBody, 'application/json')
                     ->post($syncUrl);
-            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+            } elseif (setting('iam.backchannel_method', 'jwt') === 'jwt') {
                 $token = app(JWTTokenService::class)->generateBackchannelToken($application);
                 $response = Http::withToken($token)
                     ->timeout(50)
@@ -387,13 +388,13 @@ class ApplicationUserSyncService
                     ->withBody($jsonBody, 'application/json')
                     ->post($syncUrl);
             } else {
-                $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+                $secret = setting('iam.sso_secret', setting('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
                 if (is_string($secret) && str_starts_with($secret, 'base64:')) {
                     $decoded = base64_decode(substr($secret, 7), true);
                     $secret = $decoded !== false ? $decoded : $secret;
                 }
                 $signature = hash_hmac('sha256', $jsonBody, $secret);
-                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $header = setting('sso.backchannel.signature_header', 'IAM-Signature');
 
                 $response = Http::withHeaders([
                     $header => $signature,
@@ -747,7 +748,8 @@ class ApplicationUserSyncService
     }
 
     /**
-
+     * Resolve the normalized status string from client payload.
+     */
     protected function resolveStatusValue(array $data, ?string $fallback = null): ?string
     {
         if (array_key_exists('status', $data) && $data['status'] !== null) {
@@ -807,12 +809,12 @@ class ApplicationUserSyncService
 
             $jsonBody = json_encode($payload);
 
-            if (! config('iam.backchannel_verify', true)) {
+            if (! setting('iam.backchannel_verify', true)) {
                 $response = Http::timeout(50)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->withBody($jsonBody, 'application/json')
                     ->post($syncUrl);
-            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+            } elseif (setting('iam.backchannel_method', 'jwt') === 'jwt') {
                 $token = app(JWTTokenService::class)->generateBackchannelToken($application);
                 $response = Http::withToken($token)
                     ->timeout(50)
@@ -820,7 +822,7 @@ class ApplicationUserSyncService
                     ->withBody($jsonBody, 'application/json')
                     ->post($syncUrl);
             } else {
-                $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+                $secret = setting('iam.sso_secret', setting('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
 
                 // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
                 if (is_string($secret) && str_starts_with($secret, 'base64:')) {
@@ -829,7 +831,7 @@ class ApplicationUserSyncService
                 }
 
                 $signature = hash_hmac('sha256', $jsonBody, $secret);
-                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $header = setting('sso.backchannel.signature_header', 'IAM-Signature');
 
                 $response = Http::withHeaders([
                     $header => $signature,

@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
 
         // Order matters: Users -> Applications -> IAM Roles -> IAM User Role Assignments
         $this->call([
+            SettingsSeeder::class,             // Seed settings definitions first
             // UserSeeder::class,                    // Create users first
             ApplicationsSeeder::class,            // Create registered applications
             IamRolesSeeder::class,                // Create IAM roles per application

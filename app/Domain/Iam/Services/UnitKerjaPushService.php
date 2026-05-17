@@ -30,12 +30,12 @@ class UnitKerjaPushService
         $jsonBody = json_encode($payload);
 
         try {
-            if (! config('iam.backchannel_verify', true)) {
+            if (! setting('iam.backchannel_verify', true)) {
                 $response = Http::timeout(50)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->withBody($jsonBody, 'application/json')
                     ->post($pushUrl);
-            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+            } elseif (setting('iam.backchannel_method', 'jwt') === 'jwt') {
                 $token = app(JWTTokenService::class)->generateBackchannelToken($application);
                 $response = Http::withToken($token)
                     ->timeout(50)
@@ -45,7 +45,7 @@ class UnitKerjaPushService
             } else {
                 $secret = $this->resolveBackchannelSecret($application);
                 $signature = hash_hmac('sha256', $jsonBody, $secret);
-                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $header = setting('sso.backchannel.signature_header', 'IAM-Signature');
 
                 $response = Http::withHeaders([
                     $header => $signature,
@@ -109,7 +109,7 @@ class UnitKerjaPushService
 
         // Include deleted units if push_deleted_records is enabled
         $deletedUnits = [];
-        if (config('iam.push_deleted_records', true) && $this->modelSupportsSoftDeletes(new UnitKerja())) {
+        if (setting('iam.push_deleted_records', true) && $this->modelSupportsSoftDeletes(new UnitKerja())) {
             $deletedUnitsQuery = UnitKerja::onlyTrashed();
 
             if ($unitKerjaId !== null) {
@@ -155,7 +155,7 @@ class UnitKerjaPushService
 
         // Include deleted relations (force delete tracking)
         $deletedRelations = [];
-        if (config('iam.push_deleted_records', true) && $this->modelSupportsSoftDeletes(new UnitKerja())) {
+        if (setting('iam.push_deleted_records', true) && $this->modelSupportsSoftDeletes(new UnitKerja())) {
             // Query for deleted unit kerja's past relations
             $deletedUnitKerjaIds = UnitKerja::onlyTrashed()
                 ->when($unitKerjaId !== null, fn($q) => $q->where('id', $unitKerjaId))
@@ -225,7 +225,7 @@ class UnitKerjaPushService
 
     protected function resolveBackchannelSecret(Application $application): string
     {
-        $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+        $secret = setting('iam.sso_secret', setting('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
 
         if (is_string($secret) && str_starts_with($secret, 'base64:')) {
             $decoded = base64_decode(substr($secret, 7), true);

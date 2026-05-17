@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\SettingRepositoryInterface;
+use App\Repositories\SettingRepository;
 use App\Models\Session;
 use App\Models\UnitKerja;
 use App\Models\User;
@@ -13,6 +15,7 @@ use App\Observers\UserObserver;
 use App\Observers\UserUnitKerjaObserver;
 use App\Observers\ApplicationObserver;
 use App\Services\AppRegistry;
+use App\Services\SettingService;
 use App\Services\Contracts\AppRegistryContract;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AppRegistryContract::class, AppRegistry::class);
+        $this->app->singleton(SettingRepositoryInterface::class, SettingRepository::class);
+        $this->app->singleton(SettingService::class, function ($app) {
+            return new SettingService($app->make(SettingRepositoryInterface::class));
+        });
     }
 
     /**

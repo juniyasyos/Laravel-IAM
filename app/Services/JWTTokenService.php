@@ -18,7 +18,7 @@ class JWTTokenService
 
     public function __construct()
     {
-        $secret = config('iam.jwt_secret', config('app.key'));
+        $secret = setting('iam.jwt_secret', config('app.key'));
 
         // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
         if (is_string($secret) && str_starts_with($secret, 'base64:')) {
@@ -27,7 +27,7 @@ class JWTTokenService
         }
 
         $this->secretKey = $secret;
-        $this->issuer = config('iam.issuer', config('app.url'));
+        $this->issuer = setting('iam.issuer', config('app.url'));
     }
 
     /**

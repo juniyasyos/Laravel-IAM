@@ -15,7 +15,7 @@ class ApplicationRoleSyncService
      */
     public function syncRoles(Application $application): array
     {
-        $mode = config('iam.role_sync_mode', 'pull');
+        $mode = setting('iam.role_sync_mode', 'pull');
 
         if ($mode === 'push') {
             return $this->pushRolesToClient($application);
@@ -101,15 +101,15 @@ class ApplicationRoleSyncService
             ]);
 
             // if verification is disabled we don't send any authentication
-            if (! config('iam.backchannel_verify', true)) {
+            if (! setting('iam.backchannel_verify', true)) {
                 $response = Http::timeout(10)->get($syncUrl);
-            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+            } elseif (setting('iam.backchannel_method', 'jwt') === 'jwt') {
                 $token = app(JWTTokenService::class)->generateBackchannelToken($application);
                 $response = Http::withToken($token)
                     ->timeout(50)
                     ->get($syncUrl);
             } else {
-                $secret = config('sso.secret', env('SSO_SECRET', ''));
+                $secret = setting('iam.sso_secret', setting('sso.secret', env('SSO_SECRET', '')));
 
                 // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
                 if (is_string($secret) && str_starts_with($secret, 'base64:')) {
@@ -118,7 +118,7 @@ class ApplicationRoleSyncService
                 }
 
                 $signature = hash_hmac('sha256', '', $secret);
-                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $header = setting('sso.backchannel.signature_header', 'IAM-Signature');
 
                 $response = Http::withHeaders([$header => $signature])
                     ->timeout(50)
@@ -176,12 +176,12 @@ class ApplicationRoleSyncService
             $payload = ['roles' => $roles];
             $jsonBody = json_encode($payload);
 
-            if (! config('iam.backchannel_verify', true)) {
+            if (! setting('iam.backchannel_verify', true)) {
                 $response = Http::timeout(50)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->withBody($jsonBody, 'application/json')
                     ->post($syncUrl);
-            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+            } elseif (setting('iam.backchannel_method', 'jwt') === 'jwt') {
                 $token = app(JWTTokenService::class)->generateBackchannelToken($application);
                 $response = Http::withToken($token)
                     ->timeout(50)
@@ -192,7 +192,7 @@ class ApplicationRoleSyncService
                 // Prefer global SSO secret from IAM settings (from iam.php),
                 // fallback to old sso.secret + env (backward compatibility),
                 // then fallback to per-app secret hash.
-                $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
+                $secret = setting('iam.sso_secret', setting('sso.secret', env('SSO_SECRET', ''))) ?: $application->secret;
 
                 // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
                 if (is_string($secret) && str_starts_with($secret, 'base64:')) {
@@ -201,7 +201,7 @@ class ApplicationRoleSyncService
                 }
 
                 $signature = hash_hmac('sha256', $jsonBody, $secret);
-                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $header = setting('sso.backchannel.signature_header', 'IAM-Signature');
 
                 $response = Http::withHeaders([
                     $header => $signature,
