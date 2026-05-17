@@ -14,6 +14,7 @@ use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 
 class ListUsers extends ListRecords
 {
@@ -45,9 +46,7 @@ class ListUsers extends ListRecords
                         ->label('Upload File JSON')
                         ->acceptedFileTypes(['application/json'])
                         ->maxSize(5120) // 5MB
-                        ->disk('s3')
-                        ->directory('imports')
-                        ->visibility('private')
+                        ->storeFiles(false) // Prevent auto-delete after action
                         ->required()
                         ->helperText('Format: JSON array dengan struktur sama seperti users.json. Max 5MB.'),
 
@@ -56,23 +55,87 @@ class ListUsers extends ListRecords
                         ->default(true)
                         ->helperText('Jika aktif, import akan terus berjalan meski ada baris yang gagal.'),
                 ])
-                ->action(function (array $data, ImportUsersFromJsonAction $importAction): void {
+                ->action(function (array $data, ImportUsersFromJsonAction $importAction, Request $request): void {
                     try {
-                        $fileName = $data['json_file'];
+                        // Advanced logging - capture everything
+                        \Log::debug('=== Import JSON Action Started ===');
+                        \Log::debug('Form data keys: ' . implode(', ', array_keys($data)));
+                        \Log::debug('Form data json_file type: ' . gettype($data['json_file']));
+                        
+                        if (is_object($data['json_file'])) {
+                            \Log::debug('json_file is object: ' . get_class($data['json_file']));
+                        }
 
-                        $disk = Storage::disk('s3');
+                        $jsonContent = null;
+                        $sourceFile = null;
 
-                        if (! $disk->exists($fileName)) {
-                            Notification::make()
-                                ->title('File tidak ditemukan di MinIO')
-                                ->danger()
-                                ->send();
-                            return;
+                        // Strategy 1: Handle Livewire TemporaryUploadedFile object
+                        if (isset($data['json_file'])) {
+                            $fileData = $data['json_file'];
+                            
+                            // Check if it's a TemporaryUploadedFile object from Livewire
+                            if (is_object($fileData)) {
+                                \Log::debug('Strategy 1 - Handling object');
+                                
+                                // Check if it has getRealPath method (common for uploaded files)
+                                if (method_exists($fileData, 'getRealPath')) {
+                                    $filePath = $fileData->getRealPath();
+                                    \Log::debug('Object has getRealPath, path: ' . $filePath);
+                                    
+                                    if (file_exists($filePath)) {
+                                        $jsonContent = file_get_contents($filePath);
+                                        $sourceFile = $filePath;
+                                        \Log::debug('Successfully read from getRealPath', ['size' => strlen($jsonContent)]);
+                                    } else {
+                                        \Log::debug('getRealPath does not exist: ' . $filePath);
+                                    }
+                                }
+                                
+                                // If no getRealPath or file doesn't exist, try __toString
+                                if (!$jsonContent && method_exists($fileData, '__toString')) {
+                                    $filePath = (string)$fileData;
+                                    \Log::debug('Object has __toString, path: ' . $filePath);
+                                    
+                                    if (file_exists($filePath)) {
+                                        $jsonContent = file_get_contents($filePath);
+                                        $sourceFile = $filePath;
+                                        \Log::debug('Successfully read from __toString', ['size' => strlen($jsonContent)]);
+                                    } else {
+                                        \Log::debug('__toString path does not exist: ' . $filePath);
+                                    }
+                                }
+                            }
+                            // Check if it's a string path (fallback)
+                            elseif (is_string($fileData)) {
+                                \Log::debug('Strategy 2 - Handling string path: ' . $fileData);
+                                
+                                if (file_exists($fileData)) {
+                                    $jsonContent = file_get_contents($fileData);
+                                    $sourceFile = $fileData;
+                                    \Log::debug('Successfully read from string path', ['size' => strlen($jsonContent)]);
+                                } else {
+                                    $disk = Storage::disk();
+                                    if ($disk->exists($fileData)) {
+                                        $jsonContent = $disk->get($fileData);
+                                        $sourceFile = $fileData;
+                                        \Log::debug('Successfully read from disk', ['size' => strlen($jsonContent)]);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!$jsonContent) {
+                            \Log::error('Failed to read JSON content', [
+                                'data' => $data,
+                                'fileDataType' => isset($data['json_file']) ? gettype($data['json_file']) : 'not set',
+                                'fileDataClass' => isset($data['json_file']) && is_object($data['json_file']) ? get_class($data['json_file']) : 'N/A',
+                            ]);
+                            throw new \RuntimeException("Gagal membaca file JSON. Path: " . ($sourceFile ?? 'unknown'));
                         }
 
                         $userId = auth()->id();
 
-                        if (! $userId) {
+                        if (!$userId) {
                             Notification::make()
                                 ->title('Pengguna tidak terautentikasi')
                                 ->danger()
@@ -80,21 +143,16 @@ class ListUsers extends ListRecords
                             return;
                         }
 
-                        $timestampedName = sprintf('imports/import_users_%s.json', now()->format('Ymd_His'));
+                        \Log::debug("Proceeding with import", ['fileSize' => strlen($jsonContent), 'userId' => $userId]);
 
-                        // Copy to a predictable filename and remove the original hashed upload name
-                        $disk->copy($fileName, $timestampedName);
-
-                        if (! $disk->exists($timestampedName)) {
-                            throw new \RuntimeException('File import pengguna tidak ditemukan di storage.');
-                        }
-
-                        $jsonContent = $disk->get($timestampedName);
                         $usersData = json_decode($jsonContent, true);
 
-                        if (! is_array($usersData)) {
+                        if (!is_array($usersData)) {
+                            \Log::error('Invalid JSON format', ['jsonError' => json_last_error_msg()]);
                             throw new \InvalidArgumentException('Format JSON tidak valid untuk import pengguna.');
                         }
+
+                        \Log::debug("JSON decoded successfully", ['userCount' => count($usersData)]);
 
                         $result = $importAction->execute($usersData);
 
@@ -130,6 +188,14 @@ class ListUsers extends ListRecords
                                 ))
                                 ->join("\n");
 
+                            \Log::info('Import JSON - Completed with errors', [
+                                'total' => $result['total'],
+                                'created' => $result['created'],
+                                'updated' => $result['updated'],
+                                'failed' => $result['failed'],
+                                'errorCount' => count($result['errors']),
+                            ]);
+
                             Notification::make()
                                 ->title('Import Pengguna Selesai dengan Catatan')
                                 ->body($message . $warningMessage . "\n\nError:\n" . $errorDetails)
@@ -140,6 +206,12 @@ class ListUsers extends ListRecords
                         }
 
                         if ($warningMessage !== '') {
+                            \Log::info('Import JSON - Completed with warnings', [
+                                'total' => $result['total'],
+                                'created' => $result['created'],
+                                'updated' => $result['updated'],
+                            ]);
+
                             Notification::make()
                                 ->title('Import Pengguna Selesai dengan Catatan')
                                 ->body($message . $warningMessage)
@@ -149,21 +221,33 @@ class ListUsers extends ListRecords
                             return;
                         }
 
+                        \Log::info('Import JSON - Completed successfully', [
+                            'total' => $result['total'],
+                            'created' => $result['created'],
+                            'updated' => $result['updated'],
+                        ]);
+
                         Notification::make()
                             ->title('Import Pengguna Selesai')
                             ->body($message)
                             ->success()
                             ->send();
+
+                        \Log::debug('=== Import JSON Action Completed Successfully ===');
                     } catch (\Throwable $e) {
+                        \Log::error('=== Import JSON Action Failed ===', [
+                            'exception' => get_class($e),
+                            'message' => $e->getMessage(),
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+
                         Notification::make()
                             ->title('Error saat import')
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
-                    } finally {
-                        if (Config::boolean('iam.imports.delete_source_after_import')) {
-                            Storage::disk('s3')->delete($timestampedName ?? null);
-                        }
                     }
                 })
                 ->modalHeading('Import Pengguna dari JSON')

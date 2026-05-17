@@ -78,7 +78,7 @@ return [
     | This should be configured the same in each client app (SSO_SECRET/iam.sso_secret).
     |
     */
-    'sso_secret' => env('IAM_SSO_SECRET', env('SSO_SECRET', env('APP_KEY'))),
+    'sso_secret' => env('IAM_SSO_SECRET', env('SSO_SECRET', env('IAM_JWT_SECRET'))),
 
     'jwt_secret' => env('IAM_JWT_SECRET', env('APP_KEY')),
 
@@ -92,7 +92,7 @@ return [
     |
     */
 
-    'signing_key' => env('IAM_SIGNING_KEY', env('APP_KEY')),
+    'signing_key' => env('IAM_SIGNING_KEY', env('IAM_JWT_SECRET')),
 
     /*
     |------------------------------------------------------------------------

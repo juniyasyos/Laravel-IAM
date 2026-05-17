@@ -32,6 +32,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(Gate $gate): void
     {
+        // Set filesystem disk dynamically based on environment
+        // Production uses S3, other environments use local storage
+        if (! app()->environment('production')) {
+            config(['filesystems.default' => 'local']);
+        }
+
         $gate->define('viewPulse', function (User $user) {
             return true;
         });

@@ -4,6 +4,7 @@ namespace App\Filament\Panel\Resources\Applications\Schemas;
 
 use App\Domain\Iam\Models\Application;
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
@@ -23,52 +24,72 @@ class ApplicationInfolist
                         // ====================================
                         Section::make('Profil Aplikasi')
                             ->icon('heroicon-m-cube')
-                            ->description('Informasi identitas utama aplikasi yang terdaftar di IAM.')
+                            ->description('Identitas utama aplikasi yang terdaftar di IAM.')
+                            ->collapsible()
                             ->schema([
-                                TextEntry::make('name')
-                                    ->label('Nama Aplikasi')
-                                    ->weight('semibold')
-                                    ->icon('heroicon-m-rectangle-stack')
-                                    ->extraAttributes([
-                                        'class' => 'text-base text-gray-900 dark:text-gray-100',
+                                Group::make()
+                                    ->schema([
+                                        ImageEntry::make('logo_url')
+                                            ->label('Logo Aplikasi')
+                                            ->height(80)
+                                            ->circular() // kalau logo cocok jadi bulat
+                                            ->defaultImageUrl(url('/images/placeholder-logo.png')) // fallback kalau kosong
+                                            ->extraAttributes([
+                                                'class' => 'mb-2',
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        TextEntry::make('name')
+                                            ->label('Nama Aplikasi')
+                                            ->weight('bold')
+                                            ->size('lg')
+                                            ->icon('heroicon-m-rectangle-stack')
+                                            ->extraAttributes([
+                                                'class' => 'tracking-tight',
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        TextEntry::make('description')
+                                            ->label('Deskripsi')
+                                            ->placeholder('Belum ada deskripsi.')
+                                            ->columnSpanFull(),
+
+                                        TextEntry::make('enabled')
+                                            ->label('Status Aplikasi')
+                                            ->formatStateUsing(fn($state) => $state ? 'Aktif' : 'Tidak Aktif')
+                                            ->badge()
+                                            ->color(fn($state) => $state ? 'success' : 'danger')
+                                            ->icon(
+                                                fn($state) => $state
+                                                    ? 'heroicon-m-check-circle'
+                                                    : 'heroicon-m-x-circle'
+                                            )
+                                            ->extraAttributes([
+                                                'class' => 'mt-1',
+                                            ]),
+
+                                        TextEntry::make('app_key')
+                                            ->label('App Key')
+                                            ->badge()
+                                            ->color('gray')
+                                            ->copyable()
+                                            ->copyMessage('App key berhasil disalin')
+                                            ->copyMessageDuration(1500)
+                                            ->icon('heroicon-m-key')
+                                            ->fontFamily('mono')
+                                            ->limit(20)
+                                            ->tooltip(fn($record) => $record->app_key),
+
+                                    ])
+                                    ->columns([
+                                        'default' => 1,
+                                        'md' => 2,
                                     ]),
-
-                                IconEntry::make('enabled')
-                                    ->label('Status Aplikasi')
-                                    ->boolean()
-                                    ->trueIcon('heroicon-m-check-badge')
-                                    ->falseIcon('heroicon-m-no-symbol')
-                                    ->trueColor('success')
-                                    ->falseColor('danger'),
-
-                                TextEntry::make('app_key')
-                                    ->label('App Key')
-                                    ->badge()
-                                    ->color('gray')
-                                    ->copyable()
-                                    ->copyMessage('App key disalin.')
-                                    ->helperText('Digunakan sebagai identifier unik di sistem IAM.')
-                                    ->hintIcon('heroicon-m-key'),
                             ])
-                            ->columns(2),
-
-                        Section::make('Deskripsi & Tampilan')
-                            ->icon('heroicon-m-document-text')
-                            ->description('Deskripsi singkat dan logo aplikasi untuk antarmuka login SSO.')
-                            ->schema([
-                                TextEntry::make('description')
-                                    ->label('Deskripsi')
-                                    ->placeholder('Belum ada deskripsi.')
-                                    ->columnSpanFull(),
-
-                                TextEntry::make('logo_url')
-                                    ->label('Logo URL')
-                                    ->placeholder('-')
-                                    ->copyable()
-                                    ->copyMessage('URL logo disalin.')
-                                    ->columnSpanFull(),
-                            ])
-                            ->columns(2),
+                            ->columns(1)
+                            ->extraAttributes([
+                                'class' => 'bg-white dark:bg-gray-900 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-800',
+                            ]),
 
                         // ====================================
                         // KONFIGURASI SSO & TOKEN
