@@ -82,7 +82,7 @@ class UserDataService
      */
     private function buildUserFields(User $user): array
     {
-        $fields = collect(explode(',', config('iam.user_fields', 'id,name,email,nip,status,email_verified_at')))
+        $fields = collect(explode(',', setting('iam.user_fields', 'id,name,nip,email,status')))
             ->map('trim')
             ->filter()
             ->toArray();

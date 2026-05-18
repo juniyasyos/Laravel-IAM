@@ -20,7 +20,7 @@ class UserUnitKerjaObserver
         }
 
         // Only track if we're in push mode
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 

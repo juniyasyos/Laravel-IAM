@@ -73,7 +73,7 @@ class TestUserSync extends Command
         $this->info('Step 3️⃣  Running sync...');
 
         // Check config first
-        $syncMode = config('iam.user_sync_mode', 'pull');
+        $syncMode = setting('iam.user_sync_mode', 'pull');
         $this->info("   Sync mode: $syncMode");
 
         if ($syncMode === 'pull') {

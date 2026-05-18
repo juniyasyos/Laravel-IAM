@@ -8,6 +8,7 @@ use Filament\Notifications\Notification;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -19,82 +20,116 @@ class CompanySettings extends Page
 
     protected string $view = 'filament.panel.resources.settings.pages.company-settings';
 
-    /**
-     * @var array<int, array<string, mixed>>
-     */
     public ?array $data = [];
-
-    /**
-     * @var array<int, array<string, mixed>>
-     */
-    public array $fields = [];
 
     public function mount(SettingService $settingService): void
     {
-        $definitions = collect(config('settings.definitions', []))
-            ->filter(fn (array $definition): bool => ($definition['group'] ?? null) === 'company');
-
-        $currentValues = $settingService->group('company');
-
-        $this->fields = $definitions
-            ->map(function (array $definition, string $key) use ($currentValues): array {
-                $stateKey = str_replace('.', '__', $key);
-
-                $this->data[$stateKey] = $currentValues[$key] ?? $definition['default'] ?? null;
-
-                return [
-                    'key' => $key,
-                    'state_key' => $stateKey,
-                    'label' => $definition['description'] ?? $key,
-                    'description' => $definition['description'] ?? null,
-                    'input_type' => $definition['input_type'] ?? 'text',
-                    'is_sensitive' => (bool) ($definition['is_sensitive'] ?? false),
-                ];
-            })
-            ->values()
-            ->all();
+        $this->data = [
+            'company_name' => $settingService->get('company.name', 'RS Citra Husada Sejahtera'),
+            'company_tagline' => $settingService->get('company.tagline', 'Melayani dengan Hati dan Profesionalisme'),
+            'company_logo' => $settingService->get('company.logo', '/images/company/logo.png'),
+            'company_address' => $settingService->get('company.address', 'Jl. Raya Kesehatan No. 123, Kecamatan Sejahtera'),
+            'company_phone' => $settingService->get('company.phone', '(0331) 123456'),
+            'company_email' => $settingService->get('company.email', 'info@citrahusada.co.id'),
+            'company_website' => $settingService->get('company.website', 'https://citrahusada.co.id'),
+            'company_city' => $settingService->get('company.city', 'Jember'),
+            'company_postal_code' => $settingService->get('company.postal_code', '68121'),
+            'company_director_name' => $settingService->get('company.director_name', 'dr. Andi Pratama, M.Kes'),
+            'company_director_title' => $settingService->get('company.director_title', 'Direktur Utama'),
+        ];
 
         $this->form->fill($this->data);
     }
 
     public function form(Schema $schema): Schema
     {
-        $components = [];
-
-        foreach ($this->fields as $field) {
-            $input = $field['input_type'] === 'textarea'
-                ? Textarea::make($field['state_key'])
-                    ->label($field['label'])
-                    ->rows(4)
-                : TextInput::make($field['state_key'])
-                    ->label($field['label'])
-                    ->type($field['input_type'] === 'email' ? 'email' : ($field['input_type'] === 'url' ? 'url' : 'text'));
-
-            $input->helperText('Key locked: ' . $field['key']);
-
-            if ($field['is_sensitive']) {
-                $input->password();
-            }
-
-            $components[] = Section::make(ucfirst(str_replace('.', ' ', $field['key'])))
-                ->schema([
-                    $input,
-                ]);
-        }
-
         return $schema
             ->statePath('data')
             ->columns(1)
-            ->components($components);
+            ->components([
+                Section::make('Profil Perusahaan')
+                    ->description('Kelola identitas dan informasi utama perusahaan.')
+                    ->icon('heroicon-o-building-office')
+                    ->schema([
+
+                        Fieldset::make('Identitas Utama')
+                            ->schema([
+                                TextInput::make('company_name')
+                                    ->label('Nama Perusahaan')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->placeholder('Contoh: PT Citra Husada Sejahtera')
+                                    ->columnSpanFull(),
+
+                                TextInput::make('company_tagline')
+                                    ->label('Tagline')
+                                    ->maxLength(255)
+                                    ->placeholder('Contoh: Solusi Kesehatan Terpercaya')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(1),
+
+                        Fieldset::make('Branding')
+                            ->schema([
+                                TextInput::make('company_logo')
+                                    ->label('Logo (URL)')
+                                    ->type('url')
+                                    ->placeholder('https://...')
+                                    ->suffixIcon('heroicon-m-photo')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        Fieldset::make('Alamat')
+                            ->schema([
+                                Textarea::make('company_address')
+                                    ->label('Alamat Lengkap')
+                                    ->rows(3)
+                                    ->placeholder('Jl. Contoh No.123...')
+                                    ->columnSpanFull(),
+
+                                TextInput::make('company_city')
+                                    ->label('Kota'),
+
+                                TextInput::make('company_postal_code')
+                                    ->label('Kode Pos'),
+                            ])
+                            ->columns(2),
+
+                        Fieldset::make('Kontak')
+                            ->schema([
+                                TextInput::make('company_phone')
+                                    ->label('Telepon'),
+                                    // ->tel()
+                                    // ->prefix('+62'),
+
+                                TextInput::make('company_email')
+                                    ->label('Email')
+                                    ->email(),
+
+                                TextInput::make('company_website')
+                                    ->label('Website')
+                                    ->url()
+                                    ->prefix('https://'),
+                            ])
+                            ->columns(3),
+
+                    ])
+            ]);
     }
 
     public function save(SettingService $settingService): void
     {
         $state = $this->form->getState();
 
-        foreach ($this->fields as $field) {
-            $settingService->set($field['key'], $state[$field['state_key']] ?? null);
-        }
+        $settingService->set('company.name', $state['company_name'] ?? null);
+        $settingService->set('company.tagline', $state['company_tagline'] ?? null);
+        $settingService->set('company.logo', $state['company_logo'] ?? null);
+        $settingService->set('company.address', $state['company_address'] ?? null);
+        $settingService->set('company.phone', $state['company_phone'] ?? null);
+        $settingService->set('company.email', $state['company_email'] ?? null);
+        $settingService->set('company.website', $state['company_website'] ?? null);
+        $settingService->set('company.city', $state['company_city'] ?? null);
+        $settingService->set('company.postal_code', $state['company_postal_code'] ?? null);
 
         Notification::make()
             ->title('Company settings saved')
@@ -109,7 +144,7 @@ class CompanySettings extends Page
     protected function getViewData(): array
     {
         return [
-            'hasFields' => ! empty($this->fields),
+            'hasFields' => true,
         ];
     }
 }

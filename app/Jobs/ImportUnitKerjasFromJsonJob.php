@@ -79,7 +79,7 @@ class ImportUnitKerjasFromJsonJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]), now()->addHours(2));
         } finally {
-            if (config('iam.imports.delete_source_after_import', false)) {
+            if (setting('iam.imports.delete_source_after_import', false)) {
                 Storage::disk('s3')->delete($this->filePath);
             }
         }

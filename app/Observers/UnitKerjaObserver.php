@@ -29,7 +29,7 @@ class UnitKerjaObserver
 
     public function forceDeleted(UnitKerja $unitKerja): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -50,7 +50,7 @@ class UnitKerjaObserver
 
     protected function dispatchUnitSync(UnitKerja $unitKerja, string $event): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 

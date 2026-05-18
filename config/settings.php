@@ -91,24 +91,6 @@ return [
             'source' => 'company identity',
         ],
 
-        'company.director_name' => [
-            'group' => 'company',
-            'type' => 'string',
-            'input_type' => 'text',
-            'default' => 'dr. Andi Pratama, M.Kes',
-            'description' => 'Nama pimpinan / direktur (untuk tanda tangan dokumen)',
-            'source' => 'company identity',
-        ],
-
-        'company.director_title' => [
-            'group' => 'company',
-            'type' => 'string',
-            'input_type' => 'text',
-            'default' => 'Direktur Utama',
-            'description' => 'Jabatan pimpinan',
-            'source' => 'company identity',
-        ],
-
         'sso.issuer' => [
             'group' => 'sso',
             'type' => 'string',
@@ -157,6 +139,14 @@ return [
             ],
             'description' => 'Default app entry injected in user applications response',
             'source' => 'config/iam.php:home_app',
+        ],
+        'iam.app_key' => [
+            'group' => 'iam',
+            'type' => 'string',
+            'input_type' => 'text',
+            'default' => null,
+            'description' => 'Optional app key restriction for access token verification',
+            'source' => 'app/Http/Middleware/VerifyIAMAccessToken.php',
         ],
         'iam.issuer' => [
             'group' => 'iam',
@@ -266,6 +256,22 @@ return [
             'description' => 'Lifetime in seconds for authorization codes',
             'source' => 'config/iam.php:auth_code_ttl',
         ],
+        'iam.audience' => [
+            'group' => 'iam',
+            'type' => 'json',
+            'input_type' => 'json',
+            'default' => null,
+            'description' => 'Optional audience claim for JWT tokens',
+            'source' => 'config/iam.php:audience',
+        ],
+        'iam.protect_system_roles' => [
+            'group' => 'iam',
+            'type' => 'boolean',
+            'input_type' => 'toggle',
+            'default' => (bool) env('IAM_PROTECT_SYSTEM_ROLES', true),
+            'description' => 'Whether to enforce protection on system roles',
+            'source' => 'config/iam.php:protect_system_roles',
+        ],
         'iam.user_sync_mode' => [
             'group' => 'iam',
             'type' => 'string',
@@ -284,6 +290,22 @@ return [
             'description' => 'Direction of role sync between IAM and client',
             'source' => 'config/iam.php:role_sync_mode',
         ],
+        'iam.role_sync_from_client_allow_create' => [
+            'group' => 'iam',
+            'type' => 'boolean',
+            'input_type' => 'toggle',
+            'default' => (bool) env('IAM_ROLE_SYNC_FROM_CLIENT_ALLOW_CREATE', false),
+            'description' => 'If true, IAM creates roles that exist in client but not in IAM',
+            'source' => 'config/iam.php:role_sync_from_client_allow_create',
+        ],
+        'iam.role_sync_from_iam_allow_create' => [
+            'group' => 'iam',
+            'type' => 'boolean',
+            'input_type' => 'toggle',
+            'default' => (bool) env('IAM_ROLE_SYNC_FROM_IAM_ALLOW_CREATE', false),
+            'description' => 'In push mode, allow clients to create new roles from IAM payload',
+            'source' => 'config/iam.php:role_sync_from_iam_allow_create',
+        ],
         'iam.user_sync_from_iam_allow_create' => [
             'group' => 'iam',
             'type' => 'boolean',
@@ -291,6 +313,14 @@ return [
             'default' => (bool) env('IAM_USER_SYNC_FROM_IAM_ALLOW_CREATE', true),
             'description' => 'When push mode is active, allow IAM to create new users',
             'source' => 'config/iam.php:user_sync_from_iam_allow_create',
+        ],
+        'iam.user_sync_from_iam_delete_missing' => [
+            'group' => 'iam',
+            'type' => 'boolean',
+            'input_type' => 'toggle',
+            'default' => (bool) env('IAM_USER_SYNC_FROM_IAM_DELETE_MISSING', false),
+            'description' => 'When pushing users, allow clients to delete/disable missing users',
+            'source' => 'config/iam.php:user_sync_from_iam_delete_missing',
         ],
         'iam.user_sync_force_pull' => [
             'group' => 'iam',
@@ -307,6 +337,40 @@ return [
             'default' => (bool) env('IAM_USER_SYNC_PASSWORD_FIELD', false),
             'description' => 'Whether user sync should include password field',
             'source' => 'config/iam.php:user_sync_password_field',
+        ],
+        'iam.user_fields' => [
+            'group' => 'iam',
+            'type' => 'string',
+            'input_type' => 'text',
+            'default' => 'id,name,nip,email,status',
+            'description' => 'Comma-separated user fields included in API responses',
+            'source' => 'config/iam.php:user_fields',
+        ],
+        'iam.sync_unit_kerja' => [
+            'group' => 'iam',
+            'type' => 'boolean',
+            'input_type' => 'toggle',
+            'default' => true,
+            'description' => 'Control whether Unit Kerja CRUD is allowed',
+            'source' => 'app/Filament/Panel/Resources/UnitKerjas/UnitKerjaResource.php',
+        ],
+        'iam.default_user_roles' => [
+            'group' => 'iam',
+            'type' => 'json',
+            'input_type' => 'json',
+            'default' => [],
+            'description' => 'Optional default roles assigned to new users per application',
+            'source' => 'config/iam.php:default_user_roles',
+        ],
+        'iam.imports' => [
+            'group' => 'iam',
+            'type' => 'json',
+            'input_type' => 'json',
+            'default' => [
+                'delete_source_after_import' => (bool) env('IAM_IMPORT_DELETE_SOURCE_AFTER_IMPORT', false),
+            ],
+            'description' => 'Controls for JSON import jobs',
+            'source' => 'app/Jobs/ImportUnitKerjasFromJsonJob.php',
         ],
 
         'auth.defaults.guard' => [

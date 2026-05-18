@@ -24,14 +24,14 @@ class UserObserver
     public function __construct()
     {
         // Conditionally include password field based on config
-        if (config('iam.user_sync_password_field', false)) {
+        if (setting('iam.user_sync_password_field', false)) {
             $this->syncAttributes[] = 'password';
         }
     }
 
     public function saved(User $user): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -71,7 +71,7 @@ class UserObserver
 
     public function updated(User $user): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -97,7 +97,7 @@ class UserObserver
 
     public function deleted(User $user): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -117,7 +117,7 @@ class UserObserver
 
     public function restored(User $user): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -137,7 +137,7 @@ class UserObserver
 
     public function forceDeleted(User $user): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -170,7 +170,7 @@ class UserObserver
      */
     public function relationshipChanged(User $user, string $note = 'related'): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 

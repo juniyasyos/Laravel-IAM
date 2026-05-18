@@ -73,12 +73,12 @@ class RolesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Action::make('syncRoles')
-                    ->label(fn() => config('iam.role_sync_mode', 'pull') === 'push' ? 'Push Roles to Client' : 'Pull Roles from Client')
+                    ->label(fn() => setting('iam.role_sync_mode', 'pull') === 'push' ? 'Push Roles to Client' : 'Pull Roles from Client')
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
                     ->action(function (): void {
-                        $mode = config('iam.role_sync_mode', 'pull');
-                        $allowCreate = config('iam.role_sync_from_iam_allow_create', false);
+                        $mode = setting('iam.role_sync_mode', 'pull');
+                        $allowCreate = setting('iam.role_sync_from_iam_allow_create', false);
 
                         $service = new ApplicationRoleSyncService();
                         $result = $service->syncRoles($this->getOwnerRecord());

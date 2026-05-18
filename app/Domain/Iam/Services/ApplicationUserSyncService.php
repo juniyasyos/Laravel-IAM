@@ -546,9 +546,9 @@ class ApplicationUserSyncService
             ]);
 
             // if verification is disabled we don't send any auth headers
-            if (! config('iam.backchannel_verify', true)) {
+            if (! setting('iam.backchannel_verify', true)) {
                 $response = Http::timeout(10)->get($syncUrl);
-            } elseif (config('iam.backchannel_method', 'jwt') === 'jwt') {
+            } elseif (setting('iam.backchannel_method', 'jwt') === 'jwt') {
                 $token = app(JWTTokenService::class)->generateBackchannelToken($application);
                 $response = Http::withToken($token)
                     ->timeout(10)
@@ -557,7 +557,7 @@ class ApplicationUserSyncService
                 // legacy hmac signature on empty body.
                 // Prefer global SSO secret from IAM config (iam.sso_secret).
                 // Fall back to legacy sso.secret/env, then per-application secret hash.
-                $secret = config('iam.sso_secret', config('sso.secret', env('SSO_SECRET', '')));
+                $secret = setting('iam.sso_secret', setting('sso.secret', env('SSO_SECRET', '')));
                 if (empty($secret)) {
                     $secret = $application->secret;
                 }
@@ -582,7 +582,7 @@ class ApplicationUserSyncService
                 }
 
                 $signature = hash_hmac('sha256', '', $secret);
-                $header = config('sso.backchannel.signature_header', 'IAM-Signature');
+                $header = setting('sso.backchannel.signature_header', 'IAM-Signature');
 
                 $response = Http::withHeaders([
                     $header => $signature,

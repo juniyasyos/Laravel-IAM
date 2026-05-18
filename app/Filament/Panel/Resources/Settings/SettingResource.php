@@ -3,7 +3,11 @@
 namespace App\Filament\Panel\Resources\Settings;
 
 use App\Filament\Panel\Resources\Settings\Pages\CompanySettings;
+use App\Filament\Panel\Resources\Settings\Pages\AuthSettings;
+use App\Filament\Panel\Resources\Settings\Pages\FortifySettings;
+use App\Filament\Panel\Resources\Settings\Pages\IamSettings;
 use App\Filament\Panel\Resources\Settings\Pages\SettingsHome;
+use App\Filament\Panel\Resources\Settings\Pages\SsoSettings;
 use App\Filament\Panel\Resources\Settings\Pages\EditSetting;
 use App\Filament\Panel\Resources\Settings\Pages\ListSettings;
 use App\Filament\Panel\Resources\Settings\Schemas\SettingForm;
@@ -51,7 +55,10 @@ class SettingResource extends Resource
         return [
             'index' => SettingsHome::route('/'),
             'company' => CompanySettings::route('/company'),
-            'groups' => ListSettings::route('/groups'),
+            'sso' => SsoSettings::route('/sso'),
+            'iam' => IamSettings::route('/iam'),
+            'auth' => AuthSettings::route('/auth'),
+            'fortify' => FortifySettings::route('/fortify'),
             'edit' => EditSetting::route('/{record}/edit'),
         ];
     }

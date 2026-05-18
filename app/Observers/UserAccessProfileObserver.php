@@ -15,7 +15,7 @@ class UserAccessProfileObserver
      */
     public function created(UserAccessProfile $userAccessProfile): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -43,7 +43,7 @@ class UserAccessProfileObserver
      */
     public function updated(UserAccessProfile $userAccessProfile): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -71,7 +71,7 @@ class UserAccessProfileObserver
      */
     public function deleted(UserAccessProfile $userAccessProfile): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
@@ -98,7 +98,7 @@ class UserAccessProfileObserver
      */
     public function restored(UserAccessProfile $userAccessProfile): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 

@@ -71,7 +71,7 @@ class UnitKerjaResource extends Resource
 
     public static function isCrudAllowed(): bool
     {
-        return (bool) config('iam.sync_unit_kerja', true);
+        return (bool) setting('iam.sync_unit_kerja', true);
     }
 
     public static function form(Schema $schema): Schema

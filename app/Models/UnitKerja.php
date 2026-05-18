@@ -27,7 +27,7 @@ class UnitKerja extends Model
 
     public static function isCrudAllowed(): bool
     {
-        // return (bool) config('iam.sync_unit_kerja', true);
+        // return (bool) setting('iam.sync_unit_kerja', true);
         return true;
     }
 

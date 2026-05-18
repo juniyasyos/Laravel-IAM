@@ -154,7 +154,7 @@ class UserInfoController extends Controller
 
     private function prependIamHomeApplication(array $applications, bool $detailed): array
     {
-        $homeConfig = config('iam.home_app', []);
+        $homeConfig = setting('iam.home_app', []);
         $enabled = (bool) ($homeConfig['enabled'] ?? true);
 
         if (!$enabled) {
@@ -179,7 +179,7 @@ class UserInfoController extends Controller
 
     private function buildIamHomeApplication(bool $detailed): array
     {
-        $homeConfig = config('iam.home_app', []);
+        $homeConfig = setting('iam.home_app', []);
 
         $appKey = (string) ($homeConfig['app_key'] ?? 'iam-home');
         $name = (string) ($homeConfig['name'] ?? 'IAM Home');

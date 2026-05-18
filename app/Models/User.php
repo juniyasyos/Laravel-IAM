@@ -593,7 +593,7 @@ class User extends Authenticatable
      */
     public function triggerSync(string $event = 'manual'): void
     {
-        if (config('iam.user_sync_mode', 'pull') !== 'push') {
+        if (setting('iam.user_sync_mode', 'pull') !== 'push') {
             return;
         }
 
