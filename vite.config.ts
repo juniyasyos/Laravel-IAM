@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     plugins: [
+        react(),
         laravel({
             input: [
                 'resources/js/app.tsx',
@@ -14,7 +15,6 @@ export default defineConfig({
             // ssr: 'resources/js/ssr.ts',
             refresh: true,
         }),
-        react(),
         tailwindcss(),
         wayfinder({
             formVariants: true,

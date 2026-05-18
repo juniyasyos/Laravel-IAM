@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { router, usePage, Head } from '@inertiajs/react';
 import Login from '../../components/Login';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -25,11 +25,14 @@ export default function LoginPage() {
   };
 
   return (
-    <Login
-      onLogin={handleLogin}
-      isLoading={isLoading}
-      error={validationError || error}
-      devAutofill={devAutofill}
-    />
+    <>
+      <Head title="Login" />
+      <Login
+        onLogin={handleLogin}
+        isLoading={isLoading}
+        error={validationError || error}
+        devAutofill={devAutofill}
+      />
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { router, usePage, Head } from '@inertiajs/react';
 import Dashboard from '../../components/Dashboard';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -25,5 +25,10 @@ export default function DashboardPage() {
     return <div>Loading...</div>;
   }
 
-  return <Dashboard user={displayUser} applications={applications} accessProfiles={accessProfiles} />;
+  return (
+    <>
+      <Head title="Dashboard" />
+      <Dashboard user={displayUser} applications={applications} accessProfiles={accessProfiles} />
+    </>
+  );
 }
